@@ -4,6 +4,7 @@
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 using namespace std;
+using namespace OPCServerLibrary;
 
 namespace OPCClientLibraryTests
 {
@@ -16,7 +17,14 @@ namespace OPCClientLibraryTests
 			string name = "Server";
 			OPCServer srv(name);
 			Assert::IsNotNull<OPCServer>(&srv);
-			Assert::AreEqual(srv.name, name);
+			Assert::AreEqual(srv.name(), name);
+			string newName = "NewServer";
+			srv.name(newName);
+			Assert::AreEqual(srv.name(), newName);
+			string anotherName;
+			//OPCServer srv2 = anotherName = "AnotherServer";
+			OPCServer srv2(anotherName);
+			Assert::AreEqual(srv2.name(), anotherName);
 		}
 	};
 }

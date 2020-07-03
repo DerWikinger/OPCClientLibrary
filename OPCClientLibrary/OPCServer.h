@@ -2,23 +2,31 @@
 
 #include "pch.h"
 
-using namespace std;
+namespace OPCServerLibrary {
 
-using namespace OpcEnumLib;
-using namespace OPCDA;
+	using namespace std;
+
+	using namespace OpcEnumLib;
+	using namespace OPCDA;
 
 
-class __declspec(dllexport) OPCServer
-{
-private:
-	IUnknown* srv;
-	IOPCServer* server;
-public:
-	string name;
-	OPCServer() : name("") {}
-	OPCServer(string name) : name(name) {}
-	virtual ~OPCServer() {}
-	void Connect();
-	void Disconnect();
-};
+	class __declspec(dllexport) OPCServer
+	{
+	private:
+		IUnknown* srv;
+		IOPCServer* server;
+		string _name;
+	public:
+		OPCServer() : _name("") {}
+		explicit OPCServer(const string& name) : _name(name) {}
+		const string name();
+		const string name(const string& value);
+		virtual ~OPCServer() {
+			delete srv;
+			delete server;
+		}
+		void Connect();
+		void Disconnect();
+	};
+}
 
