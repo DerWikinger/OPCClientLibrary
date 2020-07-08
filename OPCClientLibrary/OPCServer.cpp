@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "OPCServer.h"
+#include <algorithm>
 
 using namespace OPCServerLibrary;
 
@@ -35,6 +36,14 @@ const CLSID OPCServer::clsidcat(const CLSID& value) {
 	return this->_clsidcat = value;
 }
 
+const GUID* OPCServer::guid() {
+	return this->_guid;
+}
+
+const GUID* OPCServer::guid(GUID* value) {
+	return this->_guid = value;
+}
+
 const string OPCServer::ToString() {
 	//string res = "OPCServerObject";
 	return _name;
@@ -48,7 +57,7 @@ const string OPCServer::ToString() {
 //	return serverInfo;
 //}
 
-list<OPCServer> OPCServer::BrowseOPCServers(const string& host, const string& username, const string& password, const string& domain) {
+list<OPCServer*> OPCServer::BrowseOPCServers(const string& host, const string& username, const string& password, const string& domain) {
 
 	//Идентификатор интерфейса IOPCServerList
 	IID IID_IOPCServerList = __uuidof(IOPCServerList);
@@ -100,6 +109,9 @@ list<OPCServer> OPCServer::BrowseOPCServers(const string& host, const string& us
 	unsigned long ccomp = 1;
 	// Идентификатор категории ОРС DA 2.0
 	hRes = CLSIDFromString(L"{63D5F432-CFE4-11D1-B2C8-0060083BA1FB}", &clsidcat);
+	if (FAILED(hRes)) {
+		throw new exception("Ошибка сервера", hRes);
+	}
 	pServerList->EnumClassesOfCategories(ccomp, &clsidcat, 0, NULL, &pIOPCEnumGuid);
 
 	list<OLECHAR*> lst;
@@ -112,7 +124,7 @@ list<OPCServer> OPCServer::BrowseOPCServers(const string& host, const string& us
 	unsigned long iRetSvr; // количество серверов, предоставленных запросом
 	// получение первого доступного идентификатора сервера
 	
-	list<OPCServer> result;
+	list<OPCServer*> result;
 	((IOPCEnumGUID*)pIOPCEnumGuid)->Next(1, &guid, &iRetSvr);
 	while (iRetSvr != 0)
 	{
@@ -121,11 +133,12 @@ list<OPCServer> OPCServer::BrowseOPCServers(const string& host, const string& us
 		
 		wstring ws = pszProgID;
 		string name = string(ws.begin(), ws.end());
-		OPCServer server(name);
+		OPCServer* server =new OPCServer(name);
 		result.push_back(server);
 		GUID* pGuid = new GUID;
 		//создаем область памяти, чтобы хранить идентификатор в привязке к строке списка
 		memcpy(pGuid, &guid, sizeof(guid));
+		server->guid(pGuid);
 		//связываем элемент списка и указатель на идентификатор
 		((IOPCEnumGUID*)pIOPCEnumGuid)->Next(1, &guid, &iRetSvr); // получаем следующий сервер
 	}
@@ -177,6 +190,17 @@ COAUTHIDENTITY* OPCServer::GetAuthIdentity(const string& username, const string&
 
 	return pResult;
 }
+
+OPCServer* OPCServer::GetOPCServerByName(const string& name, const list<OPCServer*> &lst) {
+	OPCServer* pResult = 0;
+
+	for_each(lst.begin(), lst.end(), [&](OPCServer* srv) mutable {
+		if(~srv->name().find(name)) pResult = srv;
+		});
+
+	return pResult;
+}
+
 
 
 

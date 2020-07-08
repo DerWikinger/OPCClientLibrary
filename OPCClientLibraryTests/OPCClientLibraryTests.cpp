@@ -43,16 +43,39 @@ namespace OPCClientLibraryTests
 			// Идентификатор компонента просмотра списка серверов
 			hRes = CLSIDFromProgID(L"OPC.ServerList", &clsid);
 			srv.clsid(clsid);
+			srv.guid(&clsid);
 			Assert::IsTrue(srv.clsid() == clsid);
+			Assert::IsTrue(srv.guid() == &clsid);
 			
 			// Идентификатор категории ОРС DA 2.0
 			hRes = CLSIDFromString(L"{63D5F432-CFE4-11D1-B2C8-0060083BA1FB}", &clsidcat);
 			srv.clsidcat(clsidcat);
 			Assert::IsTrue(srv.clsidcat() == clsidcat);
+		}
 
+		TEST_METHOD(TestBrowseServers)
+		{
 			string hostName = "127.0.0.1";
-			list<OPCServer> lst = OPCServer::BrowseOPCServers(hostName);
+			list<OPCServer*> lst = OPCServer::BrowseOPCServers(hostName);
 			Assert::IsFalse(lst.size() == 0);
+
+			hostName = "uncorrectAddress";
+			//hostName = "192.168.173.250";
+			
+			auto func = [=] () {
+				OPCServer::BrowseOPCServers(hostName);
+			};
+
+			//Assert::ExpectException<list<OPCServer*>>(func);
+			//Assert::ExpectException<exception>(func);
+		}
+
+		TEST_METHOD(TestGetOPCServerByName) {
+			list<OPCServer*> lst;
+			lst.push_back(new OPCServer("Kepware"));
+			lst.push_back(new OPCServer("InSAT.ModbusOPCServer.DA"));
+			OPCServer* srv = OPCServer::GetOPCServerByName("InSAT", lst);
+			Assert::IsNotNull(srv);
 		}
 
 		TEST_METHOD(TestGetAuthIdentity)
