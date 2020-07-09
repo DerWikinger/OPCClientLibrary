@@ -1,11 +1,13 @@
 #include "pch.h"
 #include "CppUnitTest.h"
 #include "OPCServer.h"
+#include "OPCEnum.h"
 #include <list>
+#include "ServerException.h"
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 using namespace std;
-using namespace OPCServerLibrary;
+using namespace OPCClientLibrary;
 using namespace OPCDA;
 using namespace OpcEnumLib;
 
@@ -56,42 +58,44 @@ namespace OPCClientLibraryTests
 		TEST_METHOD(TestBrowseServers)
 		{
 			string hostName = "127.0.0.1";
-			list<OPCServer*> lst = OPCServer::BrowseOPCServers(hostName);
+			list<OPCServer*> lst = OPCEnum::BrowseOPCServers(hostName);
 			Assert::IsFalse(lst.size() == 0);
 
 			hostName = "uncorrectAddress";
 			//hostName = "192.168.173.250";
-			
-			auto func = [=] () {
-				OPCServer::BrowseOPCServers(hostName);
+
+			auto func = [&] () mutable -> list<OPCServer*> {
+				return OPCEnum::BrowseOPCServers(hostName);
 			};
 
 			//Assert::ExpectException<list<OPCServer*>>(func);
-			//Assert::ExpectException<exception>(func);
+			//Assert::ExpectException<ServerException>(func);
 		}
 
 		TEST_METHOD(TestGetOPCServerByName) {
 			list<OPCServer*> lst;
 			lst.push_back(new OPCServer("Kepware"));
 			lst.push_back(new OPCServer("InSAT.ModbusOPCServer.DA"));
-			OPCServer* srv = OPCServer::GetOPCServerByName("InSAT", lst);
+			OPCServer* srv = OPCEnum::GetOPCServerByName("InSAT", lst);
 			Assert::IsNotNull(srv);
+			srv = OPCEnum::GetOPCServerByName("Nothing", lst);
+			Assert::IsNull(srv);
 		}
 
 		TEST_METHOD(TestGetAuthIdentity)
 		{
-			COAUTHIDENTITY* pAuthIdentity = OPCServer::GetAuthIdentity("Brad");
+			COAUTHIDENTITY* pAuthIdentity = OPCEnum::GetAuthIdentity("Brad");
 			Assert::IsNotNull(pAuthIdentity->User);
 			Assert::IsNull(pAuthIdentity->Password);
 			Assert::IsNull(pAuthIdentity->Domain);
-			pAuthIdentity = OPCServer::GetAuthIdentity("Alex", "123");
+			pAuthIdentity = OPCEnum::GetAuthIdentity("Alex", "123");
 			Assert::IsNotNull(pAuthIdentity->User);
 			Assert::IsNotNull(pAuthIdentity->Password);
 			Assert::IsNull(pAuthIdentity->Domain);
 			string user = "John";
 			string password = "111";
 			string domain = "microsoft.com";
-			pAuthIdentity = OPCServer::GetAuthIdentity(user, password, domain);
+			pAuthIdentity = OPCEnum::GetAuthIdentity(user, password, domain);
 			Assert::IsNotNull(pAuthIdentity->User);
 			Assert::IsNotNull(pAuthIdentity->Password);
 			Assert::IsNotNull(pAuthIdentity->Domain);

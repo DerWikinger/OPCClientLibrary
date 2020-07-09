@@ -3,7 +3,7 @@
 #include "pch.h"
 #include <list>
 
-namespace OPCServerLibrary {
+namespace OPCClientLibrary {
 
 	using namespace std;
 	using namespace OpcEnumLib;
@@ -43,13 +43,13 @@ namespace OPCServerLibrary {
 		void Disconnect();
 		const string ToString();
 		
-		static COAUTHIDENTITY* GetAuthIdentity(const string& username = "", const string& password = "", 
-			const string& domain = "");
+		//static COAUTHIDENTITY* GetAuthIdentity(const string& username = "", const string& password = "", 
+		//	const string& domain = "");
 
-		static list<OPCServer*> BrowseOPCServers(const string& host, const string& username = "", 
-			const string& password = "", const string& domain = "");
+		//static list<OPCServer*> BrowseOPCServers(const string& host, const string& username = "", 
+		//	const string& password = "", const string& domain = "");
 
-		static OPCServer* GetOPCServerByName(const string&, const list<OPCServer*>&);
+		//static OPCServer* GetOPCServerByName(const string&, const list<OPCServer*>&);
 	};
 }
 
