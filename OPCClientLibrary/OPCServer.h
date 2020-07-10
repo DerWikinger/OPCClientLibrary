@@ -1,7 +1,8 @@
 #pragma once
 
-#include "pch.h"
 #include <list>
+#include "OPCItem.h"
+#include <vector>
 
 namespace OPCClientLibrary {
 
@@ -42,6 +43,8 @@ namespace OPCClientLibrary {
 		void Connect();
 		void Disconnect();
 		const string ToString();
+		vector<OPCItem*>* items();
+		void itemsChildren(vector<OPCItem*>*, IOPCBrowseServerAddressSpace*, LPWSTR, OPCItem* pParentItem = 0);
 		
 		//static COAUTHIDENTITY* GetAuthIdentity(const string& username = "", const string& password = "", 
 		//	const string& domain = "");

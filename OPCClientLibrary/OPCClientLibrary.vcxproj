@@ -157,6 +157,8 @@
   <ItemGroup>
     <ClInclude Include="framework.h" />
     <ClInclude Include="OPCEnum.h" />
+    <ClInclude Include="OPCGroup.h" />
+    <ClInclude Include="OPCItem.h" />
     <ClInclude Include="OPCServer.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="ServerException.h" />
@@ -164,6 +166,8 @@
   <ItemGroup>
     <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="OPCEnum.cpp" />
+    <ClCompile Include="OPCGroup.cpp" />
+    <ClCompile Include="OPCItem.cpp" />
     <ClCompile Include="OPCServer.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>

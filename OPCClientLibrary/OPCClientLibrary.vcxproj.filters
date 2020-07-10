@@ -30,6 +30,12 @@
     <ClInclude Include="ServerException.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="OPCGroup.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="OPCItem.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">
@@ -45,6 +51,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="ServerException.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="OPCGroup.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="OPCItem.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

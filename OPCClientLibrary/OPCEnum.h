@@ -1,6 +1,5 @@
 #pragma once
 
-#include "pch.h"
 #include <list>
 #include "OPCServer.h"
 
@@ -16,10 +15,13 @@ namespace OPCClientLibrary {
 		static COAUTHIDENTITY* GetAuthIdentity(const string& username = "", const string& password = "",
 			const string& domain = "");
 
-		static list<OPCServer*> BrowseOPCServers(const string& host, const string& username = "",
+		static list<OPCServer*>* BrowseOPCServers(const string& host, const string& username = "",
 			const string& password = "", const string& domain = "");
 
 		static OPCServer* GetOPCServerByName(const string&, const list<OPCServer*>&);
+
+		static COSERVERINFO GetHostInfo(const string& hostname, const string& username = "", const string& password = "",
+			const string& domain = "");
 	};
 }
 

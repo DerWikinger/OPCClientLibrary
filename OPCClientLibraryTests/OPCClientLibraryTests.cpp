@@ -58,18 +58,34 @@ namespace OPCClientLibraryTests
 		TEST_METHOD(TestBrowseServers)
 		{
 			string hostName = "127.0.0.1";
-			list<OPCServer*> lst = OPCEnum::BrowseOPCServers(hostName);
-			Assert::IsFalse(lst.size() == 0);
+			list<OPCServer*>* lst = OPCEnum::BrowseOPCServers(hostName);
+			Assert::IsFalse(lst->size() == 0);
 
 			hostName = "uncorrectAddress";
 			//hostName = "192.168.173.250";
-
-			auto func = [&] () mutable -> list<OPCServer*> {
+			
+			auto func = [&] () mutable -> list<OPCServer*>* {
 				return OPCEnum::BrowseOPCServers(hostName);
 			};
 
 			//Assert::ExpectException<list<OPCServer*>>(func);
+			Assert::ExpectException<HRESULT>(func);
 			//Assert::ExpectException<ServerException>(func);
+		}
+
+		TEST_METHOD(TestServerException) {
+			string message = "Error";
+			HRESULT hRes = 123;
+
+			ServerException se(message.c_str(), hRes);
+			string msg = string(se.message());
+
+			Assert::AreEqual(message, msg);
+			Assert::AreEqual(hRes, se.hResult());
+
+			Assert::AreEqual(hRes, (HRESULT)se);
+			Assert::IsTrue(se == hRes);
+			Assert::IsTrue(hRes == se);
 		}
 
 		TEST_METHOD(TestGetOPCServerByName) {
