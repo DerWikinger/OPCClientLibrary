@@ -8,13 +8,17 @@ using namespace OPCClientLibrary;
 IOPCServer* OPCServer::Connect() {
 
 	if (_server != NULL) {
-		_server->Release();
+		return _server;
 	}
-
+	
 	IID IID_IOPCSERVER = __uuidof(IOPCServer);
+	IID IID_IOPCBrowseServerAddressSpace = __uuidof(IOPCBrowseServerAddressSpace);
 	HRESULT hRes;
+	DWORD coInt = 0x0;
+	hRes = CoInitialize(NULL);
 	MULTI_QI* pResults = new MULTI_QI();
 	pResults->pIID = &IID_IOPCSERVER;
+	//pResults->pIID = new IID[2] { IID_IOPCSERVER, IID_IOPCBrowseServerAddressSpace };
 
 	hRes = CoCreateInstanceEx(*_guid, NULL, _clsCTX, _serverInfo, 1, pResults);
 	if (FAILED(hRes))
@@ -29,43 +33,44 @@ void OPCServer::Disconnect() {
 	if (_server != NULL) {
 		_server->Release();
 	}
+	CoUninitialize();
 }
 
-const string OPCServer::name() {
-	return this->_name;
+const string OPCServer::Name() {
+	return _name;
 }
 
-const string OPCServer::name(const string& value) {
-	return this->_name = value;
+const string OPCServer::Name(const string& value) {
+	return _name = value;
 }
 
 
-const COSERVERINFO* OPCServer::serverInfo() { 
+const COSERVERINFO* OPCServer::ServerInfo() { 
 	return _serverInfo; 
 };
 
-const COSERVERINFO* OPCServer::serverInfo(COSERVERINFO* value) {
+const COSERVERINFO* OPCServer::ServerInfo(COSERVERINFO* value) {
 	return _serverInfo = value;
 };
 
 
-const GUID* OPCServer::guid() {
-	return this->_guid;
+const GUID* OPCServer::Guid() {
+	return _guid;
 }
 
-const GUID* OPCServer::guid(GUID* value) {
-	return this->_guid = value;
+const GUID* OPCServer::Guid(GUID* value) {
+	return _guid = value;
 }
 
-const DWORD OPCServer::clsCTX() {
-	return this->_clsCTX;
+const DWORD OPCServer::ClsCTX() {
+	return _clsCTX;
 }
 
-const DWORD OPCServer::clsCTX(DWORD value) {
-	return this->_clsCTX = value;
+const DWORD OPCServer::ClsCTX(DWORD value) {
+	return _clsCTX = value;
 }
 
-vector<OPCItem*>* OPCServer::items()
+vector<OPCItem*>* OPCServer::GetItems()
 {
 	vector<OPCItem*>* pItems = new vector<OPCItem*>();
 
@@ -74,16 +79,27 @@ vector<OPCItem*>* OPCServer::items()
 
 	// IOPCBrowseServerAddressSpace
 	IID IID_IOPCBrowseServerAddressSpace = __uuidof(IOPCBrowseServerAddressSpace);
+	GUID sguid = IID_IOPCBrowseServerAddressSpace;
 	
-	Connect();
-
 	IOPCBrowseServerAddressSpace* pBrowse;
-	hRes = _server->QueryInterface(IID_IOPCBrowseServerAddressSpace, (void**)&pBrowse);
+	MULTI_QI* pResult = new MULTI_QI();
+	pResult->pIID = &IID_IOPCBrowseServerAddressSpace;
+
+	hRes = CoCreateInstanceEx(*_guid, NULL, _clsCTX, _serverInfo, 1, pResult);	
+	//hRes = _server->QueryInterface(IID_IOPCBrowseServerAddressSpace, (void**)&pBrowse);
 	if (FAILED(hRes)) {
 		throw hRes;
 	}
+	pBrowse = (IOPCBrowseServerAddressSpace*)pResult->pItf;
 	LPWSTR szFilterCriteria = (LPWSTR)L"";
-	itemsChildren(pItems, pBrowse, szFilterCriteria, NULL);
+	try {
+		itemsChildren(pItems, pBrowse, szFilterCriteria, NULL);
+	}
+	catch (HRESULT h_result)
+	{
+		pBrowse->Release();
+		throw h_result;
+	}
 	pBrowse->Release();
 	return pItems;
 }
@@ -102,7 +118,7 @@ void OPCServer::itemsChildren(vector<OPCItem*>* pItems, IOPCBrowseServerAddressS
 	HRESULT hRes;
 	
 	hRes = pParent->BrowseOPCItemIDs(tagOPCBROWSETYPE::OPC_LEAF, szFilterCriteria, VARENUM::VT_EMPTY, 0, &pEnum);
-
+	if (FAILED(hRes)) throw hRes;
 	int nLeavesCount = 0;
 	if (hRes == S_OK) {
 		pEnum->Next(1, &strName, &cnt);
@@ -126,6 +142,7 @@ void OPCServer::itemsChildren(vector<OPCItem*>* pItems, IOPCBrowseServerAddressS
 	}
 
 	hRes = pParent->BrowseOPCItemIDs(tagOPCBROWSETYPE::OPC_BRANCH, szFilterCriteria, VARENUM::VT_EMPTY, 0, &pEnum);
+	if (FAILED(hRes)) throw hRes;
 	int nBranchesCount = 0;
 	if (hRes == S_OK) {
 		pEnum->Next(1, &strName, &cnt);

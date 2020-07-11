@@ -21,14 +21,17 @@ list<OPCServer*>* OPCEnum::BrowseOPCServers(const string& host, const string& us
 
 	COSERVERINFO* pHostInfo = GetHostInfo(host, username, password, domain);
 
+	//CLSID opcEnumID;
+	//hRes = CLSIDFromString(L"{13486D50-4821-11D2-A494-3CB306C10000}", &opcEnumID);
+
 	MULTI_QI* pResults = new MULTI_QI();
 	pResults->pIID = &IID_IOPCServerList;
 
 	DWORD clsCTX = CLSCTX_LOCAL_SERVER;
 	if (host != "localhost" && host != "127.0.0.1") {
-		clsCTX = CLSCTX_INPROC;
+		clsCTX = CLSCTX_REMOTE_SERVER;
 	}
-	IUnknown* punkOuter = NULL;
+
 	hRes = CoCreateInstanceEx(clsid, NULL, clsCTX, pHostInfo, 1, pResults);
 	if (FAILED(hRes)) {
 		//throw new std::exception("Ошибка сервера", hRes);
@@ -70,9 +73,9 @@ list<OPCServer*>* OPCEnum::BrowseOPCServers(const string& host, const string& us
 		GUID* pGuid = new GUID;
 		//создаем область памяти, чтобы хранить идентификатор в привязке к строке списка
 		memcpy(pGuid, &guid, sizeof(guid));
-		server->guid(pGuid);
-		server->serverInfo(pHostInfo);
-		server->clsCTX(clsCTX);
+		server->Guid(pGuid);
+		server->ServerInfo(pHostInfo);
+		server->ClsCTX(clsCTX);
 		//связываем элемент списка и указатель на идентификатор
 		((IOPCEnumGUID*)pIOPCEnumGuid)->Next(1, &guid, &iRetSvr); // получаем следующий сервер
 	}
@@ -157,7 +160,7 @@ OPCServer* OPCEnum::GetOPCServerByName(const string& name, const list<OPCServer*
 	OPCServer* pResult = 0;
 
 	for_each(lst->begin(), lst->end(), [&](OPCServer* srv) mutable {
-		if (~srv->name().find(name)) pResult = srv;
+		if (~srv->Name().find(name)) pResult = srv;
 		});
 
 	return pResult;

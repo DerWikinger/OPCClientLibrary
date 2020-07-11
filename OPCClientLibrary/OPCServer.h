@@ -24,21 +24,21 @@ namespace OPCClientLibrary {
 		OPCServer() {}
 		explicit OPCServer(const string& name) : _name(name) {}
 		
-		const string name();
-		const string name(const string&);
-		const GUID* guid();
-		const GUID* guid(GUID*);
-		const DWORD clsCTX();
-		const DWORD clsCTX(DWORD);
-		const COSERVERINFO* serverInfo();
-		const COSERVERINFO* serverInfo(COSERVERINFO*);
+		const string Name();
+		const string Name(const string&);
+		const GUID* Guid();
+		const GUID* Guid(GUID*);
+		const DWORD ClsCTX();
+		const DWORD ClsCTX(DWORD);
+		const COSERVERINFO* ServerInfo();
+		const COSERVERINFO* ServerInfo(COSERVERINFO*);
 		virtual ~OPCServer() {
 			Disconnect();
 		}
 		IOPCServer* Connect();
 		void Disconnect();
 		const string ToString();
-		vector<OPCItem*>* items();
+		vector<OPCItem*>* GetItems();
 		
 	};
 }

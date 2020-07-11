@@ -23,30 +23,30 @@ namespace OPCClientLibraryTests
 			//LPWSTR name = L"Server";
 			OPCServer srv(name);
 			Assert::IsNotNull<OPCServer>(&srv);
-			Assert::AreEqual(srv.name(), name);
+			Assert::AreEqual(srv.Name(), name);
 			string newName = "NewServer";
 			//LPWSTR newName = L"NewServer";
-			srv.name(newName);
-			Assert::AreEqual(srv.name(), newName);
+			srv.Name(newName);
+			Assert::AreEqual(srv.Name(), newName);
 			string anotherName = "AnotherServer";
 			//LPWSTR anotherName = L"AnotherServer";
 			//OPCServer srv2 = anotherName = "AnotherServer";
 			OPCServer srv2(anotherName);
-			Assert::AreEqual(srv2.name(), anotherName);
+			Assert::AreEqual(srv2.Name(), anotherName);
 			OPCServer* pSrv = &srv;
 			OPCServer* pSrv2 = &srv2;
 			Assert::IsTrue(pSrv == pSrv);
 			Assert::IsFalse(pSrv == pSrv2);
 
 			IID IUKNOWN_IID = __uuidof(IUnknown);
-			srv.guid(&IUKNOWN_IID);
-			Assert::IsTrue(*srv.guid() == IUKNOWN_IID);
+			srv.Guid(&IUKNOWN_IID);
+			Assert::IsTrue(*srv.Guid() == IUKNOWN_IID);
 			
-			Assert::AreEqual(DWORD(CLSCTX_LOCAL_SERVER), srv.clsCTX());
+			Assert::AreEqual(DWORD(CLSCTX_LOCAL_SERVER), srv.ClsCTX());
 			DWORD clsCTX = CLSCTX_ALL;
-			srv.clsCTX(clsCTX);
-			Assert::AreNotEqual(DWORD(CLSCTX_LOCAL_SERVER), srv.clsCTX());
-			Assert::AreEqual(DWORD(CLSCTX_ALL), srv.clsCTX());
+			srv.ClsCTX(clsCTX);
+			Assert::AreNotEqual(DWORD(CLSCTX_LOCAL_SERVER), srv.ClsCTX());
+			Assert::AreEqual(DWORD(CLSCTX_ALL), srv.ClsCTX());
 		}
 
 		TEST_METHOD(TestBrowseServers)
@@ -55,8 +55,7 @@ namespace OPCClientLibraryTests
 			list<OPCServer*>* lst = OPCEnum::BrowseOPCServers(hostName);
 			Assert::IsFalse(lst->size() == 0);
 
-			hostName = "uncorrectAddress";
-			//hostName = "192.168.173.250";
+			hostName = "uncorrectAddress";			
 			
 			auto func = [&] () mutable -> list<OPCServer*>* {
 				return OPCEnum::BrowseOPCServers(hostName);
@@ -67,11 +66,33 @@ namespace OPCClientLibraryTests
 			//Assert::ExpectException<ServerException>(func);
 		}
 
+		
+		TEST_METHOD(TestBrowseRemoteServers)
+		{
+			string hostName = "192.168.43.250";
+			string username = "ETL";
+			string password = "123";
+			COSERVERINFO* sInfo = OPCEnum::GetHostInfo(hostName, username, password);
+			OPCServer server("InSAT.ModbusOPCServer.DA");
+			GUID guid;
+			CLSIDFromString(L"{F5EB9AFF-96EA-403F-B129-65235F8BB8B8}", &guid);
+			server.Guid(&guid);
+			server.ClsCTX(CLSCTX_INPROC);
+			server.ServerInfo(sInfo);
+			server.Connect();
+			vector<OPCItem*>* l = server.GetItems();
+			server.Disconnect();
+			//list<OPCServer*>* lst = OPCEnum::BrowseOPCServers(hostName, username, password);
+			//Assert::IsFalse(lst->size() == 0);
+		}
+
 		TEST_METHOD(TestServerItems)
 		{
 			OPCServer* srv = OPCEnum::GetOPCServerByName("InSAT", OPCEnum::BrowseOPCServers("localhost"));
-			vector<OPCItem*>* vc = srv->items();
-			Assert::IsTrue(vc->size() == 27);
+			srv->Connect();
+			vector<OPCItem*>* vc = srv->GetItems();
+			Assert::IsTrue(vc->size() > 0);
+			srv->Disconnect();
 		}
 
 		TEST_METHOD(TestServerException) {
