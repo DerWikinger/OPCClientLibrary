@@ -19,28 +19,7 @@ list<OPCServer*>* OPCEnum::BrowseOPCServers(const string& host, const string& us
 	// Идентификатор компонента просмотра списка серверов
 	hRes = CLSIDFromProgID(L"OPC.ServerList", &clsid);
 
-	/*COAUTHINFO* pAuthInfo = NULL;
-	COAUTHIDENTITY* pAuthIdentity = NULL;
-	if (username != "") {
-		pAuthIdentity = OPCEnum::GetAuthIdentity(username, password, domain);
-
-		pAuthInfo = new COAUTHINFO();
-		pAuthInfo->pAuthIdentityData = pAuthIdentity;
-		pAuthInfo->dwAuthnSvc = RPC_C_AUTHN_WINNT;
-		pAuthInfo->pwszServerPrincName = NULL;
-		pAuthInfo->dwAuthnLevel = RPC_C_AUTHN_LEVEL_CONNECT;
-		pAuthInfo->dwImpersonationLevel = RPC_C_IMP_LEVEL_IMPERSONATE;
-		pAuthInfo->dwCapabilities = EOAC_NONE;
-		pAuthInfo->dwAuthzSvc = RPC_C_AUTHZ_NONE;
-	}*/
-
-	COSERVERINFO pHostInfo = GetHostInfo(host, username, password, domain);
-	//COSERVERINFO* pHostInfo = new COSERVERINFO();
-	//pHostInfo->dwReserved1 = 0;
-	//pHostInfo->dwReserved2 = 0;
-	//wstring ws(host.begin(), host.end());
-	//pHostInfo->pwszName = (LPWSTR)ws.c_str();
-	//pHostInfo->pAuthInfo = pAuthInfo;
+	COSERVERINFO* pHostInfo = GetHostInfo(host, username, password, domain);
 
 	MULTI_QI* pResults = new MULTI_QI();
 	pResults->pIID = &IID_IOPCServerList;
@@ -50,7 +29,7 @@ list<OPCServer*>* OPCEnum::BrowseOPCServers(const string& host, const string& us
 		clsCTX = CLSCTX_INPROC;
 	}
 	IUnknown* punkOuter = NULL;
-	hRes = CoCreateInstanceEx(clsid, NULL, clsCTX, &pHostInfo, 1, pResults);
+	hRes = CoCreateInstanceEx(clsid, NULL, clsCTX, pHostInfo, 1, pResults);
 	if (FAILED(hRes)) {
 		//throw new std::exception("Ошибка сервера", hRes);
 		throw hRes;
@@ -92,6 +71,8 @@ list<OPCServer*>* OPCEnum::BrowseOPCServers(const string& host, const string& us
 		//создаем область памяти, чтобы хранить идентификатор в привязке к строке списка
 		memcpy(pGuid, &guid, sizeof(guid));
 		server->guid(pGuid);
+		server->serverInfo(pHostInfo);
+		server->clsCTX(clsCTX);
 		//связываем элемент списка и указатель на идентификатор
 		((IOPCEnumGUID*)pIOPCEnumGuid)->Next(1, &guid, &iRetSvr); // получаем следующий сервер
 	}
@@ -99,7 +80,7 @@ list<OPCServer*>* OPCEnum::BrowseOPCServers(const string& host, const string& us
 	return result;
 }
 
-COSERVERINFO OPCEnum::GetHostInfo(const string& hostname, const string& username, const string& password,
+COSERVERINFO* OPCEnum::GetHostInfo(const string& hostname, const string& username, const string& password,
 	const string& domain)
 {
 	COAUTHINFO* pAuthInfo = NULL;
@@ -117,12 +98,12 @@ COSERVERINFO OPCEnum::GetHostInfo(const string& hostname, const string& username
 		pAuthInfo->dwAuthzSvc = RPC_C_AUTHZ_NONE;
 	}
 
-	COSERVERINFO pHostInfo;
-	pHostInfo.dwReserved1 = 0;
-	pHostInfo.dwReserved2 = 0;
+	COSERVERINFO* pHostInfo = new COSERVERINFO();
+	pHostInfo->dwReserved1 = 0;
+	pHostInfo->dwReserved2 = 0;
 	BSTR name = _com_util::ConvertStringToBSTR(hostname.c_str());
-	pHostInfo.pwszName = name;
-	pHostInfo.pAuthInfo = pAuthInfo;
+	pHostInfo->pwszName = name;
+	pHostInfo->pAuthInfo = pAuthInfo;
 
 	return pHostInfo;
 }
@@ -172,10 +153,10 @@ COAUTHIDENTITY* OPCEnum::GetAuthIdentity(const string& username, const string& p
 	return pResult;
 }
 
-OPCServer* OPCEnum::GetOPCServerByName(const string& name, const list<OPCServer*>& lst) {
+OPCServer* OPCEnum::GetOPCServerByName(const string& name, const list<OPCServer*>* lst) {
 	OPCServer* pResult = 0;
 
-	for_each(lst.begin(), lst.end(), [&](OPCServer* srv) mutable {
+	for_each(lst->begin(), lst->end(), [&](OPCServer* srv) mutable {
 		if (~srv->name().find(name)) pResult = srv;
 		});
 

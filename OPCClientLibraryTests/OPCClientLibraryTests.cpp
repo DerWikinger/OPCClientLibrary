@@ -37,22 +37,16 @@ namespace OPCClientLibraryTests
 			OPCServer* pSrv2 = &srv2;
 			Assert::IsTrue(pSrv == pSrv);
 			Assert::IsFalse(pSrv == pSrv2);
-			
-			CLSID clsid;
-			CLSID clsidcat;
-			HRESULT hRes;
 
-			// Идентификатор компонента просмотра списка серверов
-			hRes = CLSIDFromProgID(L"OPC.ServerList", &clsid);
-			srv.clsid(clsid);
-			srv.guid(&clsid);
-			Assert::IsTrue(srv.clsid() == clsid);
-			Assert::IsTrue(srv.guid() == &clsid);
+			IID IUKNOWN_IID = __uuidof(IUnknown);
+			srv.guid(&IUKNOWN_IID);
+			Assert::IsTrue(*srv.guid() == IUKNOWN_IID);
 			
-			// Идентификатор категории ОРС DA 2.0
-			hRes = CLSIDFromString(L"{63D5F432-CFE4-11D1-B2C8-0060083BA1FB}", &clsidcat);
-			srv.clsidcat(clsidcat);
-			Assert::IsTrue(srv.clsidcat() == clsidcat);
+			Assert::AreEqual(DWORD(CLSCTX_LOCAL_SERVER), srv.clsCTX());
+			DWORD clsCTX = CLSCTX_ALL;
+			srv.clsCTX(clsCTX);
+			Assert::AreNotEqual(DWORD(CLSCTX_LOCAL_SERVER), srv.clsCTX());
+			Assert::AreEqual(DWORD(CLSCTX_ALL), srv.clsCTX());
 		}
 
 		TEST_METHOD(TestBrowseServers)
@@ -71,6 +65,13 @@ namespace OPCClientLibraryTests
 			//Assert::ExpectException<list<OPCServer*>>(func);
 			Assert::ExpectException<HRESULT>(func);
 			//Assert::ExpectException<ServerException>(func);
+		}
+
+		TEST_METHOD(TestServerItems)
+		{
+			OPCServer* srv = OPCEnum::GetOPCServerByName("InSAT", OPCEnum::BrowseOPCServers("localhost"));
+			vector<OPCItem*>* vc = srv->items();
+			Assert::IsTrue(vc->size() == 27);
 		}
 
 		TEST_METHOD(TestServerException) {
@@ -92,9 +93,9 @@ namespace OPCClientLibraryTests
 			list<OPCServer*> lst;
 			lst.push_back(new OPCServer("Kepware"));
 			lst.push_back(new OPCServer("InSAT.ModbusOPCServer.DA"));
-			OPCServer* srv = OPCEnum::GetOPCServerByName("InSAT", lst);
+			OPCServer* srv = OPCEnum::GetOPCServerByName("InSAT", &lst);
 			Assert::IsNotNull(srv);
-			srv = OPCEnum::GetOPCServerByName("Nothing", lst);
+			srv = OPCEnum::GetOPCServerByName("Nothing", &lst);
 			Assert::IsNull(srv);
 		}
 

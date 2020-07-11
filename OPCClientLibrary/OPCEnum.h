@@ -18,9 +18,9 @@ namespace OPCClientLibrary {
 		static list<OPCServer*>* BrowseOPCServers(const string& host, const string& username = "",
 			const string& password = "", const string& domain = "");
 
-		static OPCServer* GetOPCServerByName(const string&, const list<OPCServer*>&);
+		static OPCServer* GetOPCServerByName(const string&, const list<OPCServer*>*);
 
-		static COSERVERINFO GetHostInfo(const string& hostname, const string& username = "", const string& password = "",
+		static COSERVERINFO* GetHostInfo(const string& hostname, const string& username = "", const string& password = "",
 			const string& domain = "");
 	};
 }

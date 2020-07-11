@@ -14,8 +14,8 @@ namespace OPCClientLibrary {
 
 		inline HRESULT hResult() const { return _hResult; }
 		inline const char* message() const { return _message;  }
-		inline operator HRESULT() { return _hResult; }
-		inline int operator== (HRESULT hRes) { return _hResult == hRes; }
+		inline operator HRESULT() const { return _hResult; }
+		inline int operator== (HRESULT hRes) const { return _hResult == hRes; }
 	};
 }
 
