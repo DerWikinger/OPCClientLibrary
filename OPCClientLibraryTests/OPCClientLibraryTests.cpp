@@ -2,7 +2,10 @@
 #include "CppUnitTest.h"
 #include "OPCServer.h"
 #include "OPCEnum.h"
+#include "OPCGroup.h"
+#include "OPCItem.h"
 #include <list>
+#include <algorithm>
 #include "ServerException.h"
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
@@ -69,12 +72,14 @@ namespace OPCClientLibraryTests
 		
 		TEST_METHOD(TestBrowseRemoteServers)
 		{
+			return; //skip the test
 			string hostName = "192.168.43.250";
 			string username = "ETL";
 			string password = "123";
 			COSERVERINFO* sInfo = OPCEnum::GetHostInfo(hostName, username, password);
 			OPCServer server("InSAT.ModbusOPCServer.DA");
 			GUID guid;
+			// InSAT.ModbusOPCServer.DA
 			CLSIDFromString(L"{F5EB9AFF-96EA-403F-B129-65235F8BB8B8}", &guid);
 			server.Guid(&guid);
 			server.ClsCTX(CLSCTX_INPROC);
@@ -88,10 +93,68 @@ namespace OPCClientLibraryTests
 
 		TEST_METHOD(TestServerItems)
 		{
+			Sleep(3000);
 			OPCServer* srv = OPCEnum::GetOPCServerByName("InSAT", OPCEnum::BrowseOPCServers("localhost"));
 			srv->Connect();
 			vector<OPCItem*>* vc = srv->GetItems();
 			Assert::IsTrue(vc->size() > 0);
+			srv->Disconnect();
+		}
+
+		TEST_METHOD(TestOPCItem)
+		{
+			string name = "ItemA";
+			OPCItem item(name);
+			ULONG hItem = item.ClientItem();
+			Assert::AreEqual(name, item.Name());
+			Assert::IsTrue(item.ClientItem() > 0);
+			OPCItem itemB("ItemB");
+			Assert::AreEqual(string("ItemB"), itemB.Name());
+			Assert::IsTrue(itemB.ClientItem() - 1 == hItem);
+		}
+
+		TEST_METHOD(TestOPCGroup)
+		{
+			string name = "OPCGroup";
+			vector<OPCItem*> vec = *new vector<OPCItem*>();
+			vec.push_back(new OPCItem("ItemA"));
+			vec.push_back(new OPCItem("ItemB"));
+			OPCGroup group(name, vec);
+			Assert::IsTrue(name == group.Name());
+			Assert::IsTrue(vec == group.Items());
+			Assert::IsTrue(vec[0]->Name() == "ItemA");
+			Assert::IsTrue(vec[1]->Name() == "ItemB");
+		}
+
+		TEST_METHOD(TestAddGroup)
+		{
+			OPCServer* srv = OPCEnum::GetOPCServerByName("InSAT", OPCEnum::BrowseOPCServers("localhost"));
+			srv->Connect();
+			vector<OPCItem*>* vec = srv->GetItems();
+			vector<OPCItem*> filtred;
+			vector<OPCGroup*> groups;
+			
+			for_each(vec->begin(), vec->end(), [&](OPCItem* item) {
+				if (item->ItemType() == tagOPCBROWSETYPE::OPC_BRANCH) {
+					int count = 0;
+					filtred.clear();
+					for_each(vec->begin(), vec->end(), [&](OPCItem* it) {
+						if (it->ItemType() == tagOPCBROWSETYPE::OPC_LEAF && it->Parent()->ItemID() == item->ItemID()) {
+							filtred.push_back(it);
+							count++;
+						}
+						});
+					if (count > 0) {
+						groups.push_back(new OPCGroup(item->ItemID(), filtred));
+					}
+				}
+				});
+			for_each(groups.begin(), groups.end(), [&](OPCGroup* group) {
+				ULONG phServerGroup = srv->AddGroup(*group);
+				Assert::IsTrue(phServerGroup != 0);
+				Assert::IsNotNull(group->ItemMgt());
+				srv->RemoveGroup(phServerGroup);
+				});
 			srv->Disconnect();
 		}
 

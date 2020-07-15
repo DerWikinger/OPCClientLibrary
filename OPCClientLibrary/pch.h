@@ -11,7 +11,8 @@
 #include "framework.h"
 #include <iostream>
 
-#import "c:/Windows/SysWOW64/OpcEnum.exe"
+#import "c:/Windows/SysWOW64/OpcEnum.exe" 
 #import "c:/Windows/SysWOW64/opcproxy.dll"
+//#import "c:/Windows/SysWOW64/opccomn_ps.dll"
 
 #endif //PCH_H

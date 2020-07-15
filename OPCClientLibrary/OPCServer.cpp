@@ -5,10 +5,10 @@
 using namespace OPCClientLibrary;
 //using namespace OPCDA;
 
-IOPCServer* OPCServer::Connect() {
+void OPCServer::Connect() {
 
 	if (_server != NULL) {
-		return _server;
+		return;
 	}
 	
 	IID IID_IOPCSERVER = __uuidof(IOPCServer);
@@ -26,13 +26,14 @@ IOPCServer* OPCServer::Connect() {
 		throw hRes;
 	}
 
-	return _server = (IOPCServer*)pResults->pItf;
+	_server = (IOPCServer*)pResults->pItf;
 }
 
 void OPCServer::Disconnect() {
 	if (_server != NULL) {
 		_server->Release();
-	}
+		_server = NULL;
+	}	
 	CoUninitialize();
 }
 
@@ -40,7 +41,7 @@ const string OPCServer::Name() {
 	return _name;
 }
 
-const string OPCServer::Name(const string& value) {
+const string OPCServer::Name(const string &value) {
 	return _name = value;
 }
 
@@ -122,18 +123,18 @@ void OPCServer::itemsChildren(vector<OPCItem*>* pItems, IOPCBrowseServerAddressS
 	int nLeavesCount = 0;
 	if (hRes == S_OK) {
 		pEnum->Next(1, &strName, &cnt);
-		ws = wstring(strName);
-		name = string(ws.begin(), ws.end());
 		while (cnt != 0)
 		{
 			pParent->GetItemID(strName, &szItemID); // получает полный идентификатор тега
+			ws = wstring(strName);
+			name = string(ws.begin(), ws.end());
 			ws = wstring(szItemID);
 			itemID = string(ws.begin(), ws.end());
 			item = new OPCItem(name);
-			item->parent(pParentItem);
-			item->itemType(tagOPCBROWSETYPE::OPC_LEAF);
-			item->itemID(itemID);
-			item->enabled(true);
+			item->Parent(pParentItem);
+			item->ItemType(tagOPCBROWSETYPE::OPC_LEAF);
+			item->ItemID(itemID);
+			item->Enabled(true);
 			pItems->push_back(item);
 
 			pEnum->Next(1, &strName, &cnt);
@@ -149,13 +150,15 @@ void OPCServer::itemsChildren(vector<OPCItem*>* pItems, IOPCBrowseServerAddressS
 		while (cnt != 0)
 		{
 			pParent->GetItemID(strName, &szItemID);
+			ws = wstring(strName);
+			name = string(ws.begin(), ws.end());
 			ws = wstring(szItemID);
 			itemID = string(ws.begin(), ws.end());
 			item = new OPCItem(name);
-			item->parent(pParentItem);
-			item->itemType(tagOPCBROWSETYPE::OPC_LEAF);
-			item->itemID(itemID);
-			item->enabled(true);
+			item->Parent(pParentItem);
+			item->ItemType(tagOPCBROWSETYPE::OPC_BRANCH);
+			item->ItemID(itemID);
+			item->Enabled(true);
 			pItems->push_back(item);
 			pParent->ChangeBrowsePosition(tagOPCBROWSEDIRECTION::OPC_BROWSE_TO, szItemID);
 			OPCServer::itemsChildren(pItems, pParent, szFilterCriteria, item);
@@ -164,6 +167,61 @@ void OPCServer::itemsChildren(vector<OPCItem*>* pItems, IOPCBrowseServerAddressS
 			nBranchesCount++;
 		}
 	}
+}
+
+const ULONG OPCServer::AddGroup(OPCGroup &group) {
+	if (_server == NULL)
+	{
+		throw 123; // Сервер не подключен
+	}
+	HRESULT hRes;
+	BSTR name = _com_util::ConvertStringToBSTR(group.Name().c_str());
+	ULONG updateRate = 1000, hClientGroup = 1, phServerGroup;
+	IID IID_IOPCItemMgt = __uuidof(IOPCItemMgt);
+	IOPCItemMgt* pItemMgt = NULL;
+	long bActive = 1;
+
+	hRes = _server->AddGroup(name, bActive, updateRate, hClientGroup, NULL, NULL, 0,
+		&phServerGroup, &updateRate, &IID_IOPCItemMgt, (IUnknown**)&pItemMgt);
+	if (FAILED(hRes))
+	{
+		throw hRes;
+	}
+	group.ItemMgt(pItemMgt);
+	
+	DWORD dwCount = group.Items().size();
+	ULONG opcHandle = 1;
+	tagOPCITEMDEF* pItems = (tagOPCITEMDEF*)CoTaskMemAlloc(dwCount * sizeof(tagOPCITEMDEF));
+	for (int i = 0; i < dwCount; i++) {
+		OPCItem* item = group.Items().at(i);
+		BSTR itemID = _com_util::ConvertStringToBSTR(item->ItemID().c_str());
+		pItems[i].szItemID = itemID;
+		pItems[i].szAccessPath = NULL;
+		pItems[i].bActive = item->Enabled();
+		pItems[i].hClient = item->ClientItem();
+		pItems[i].vtRequestedDataType = VT_EMPTY;
+		pItems[i].dwBlobSize = 0;
+		pItems[i].pBlob = NULL;
+	}
+
+	tagOPCITEMRESULT* pResults = NULL;
+	HRESULT* pErrors = NULL;
+
+	hRes = pItemMgt->AddItems(dwCount, pItems, &pResults, &pErrors);
+	if (FAILED(hRes))
+	{
+		throw hRes;
+	}
+	return phServerGroup;	
+}
+
+const void OPCServer::RemoveGroup(ULONG phServerGroup)
+{
+	if (_server == NULL)
+	{
+		throw 123; // Сервер не подключен
+	}
+	_server->RemoveGroup(phServerGroup, 1);
 }
 
 const string OPCServer::ToString() {

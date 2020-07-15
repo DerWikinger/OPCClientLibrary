@@ -3,33 +3,42 @@
 
 using namespace OPCClientLibrary;
 
-OPCDA::tagOPCBROWSETYPE OPCItem::itemType() 
+OPCDA::tagOPCBROWSETYPE OPCItem::ItemType() 
 { 
 	return _itemType; 
 }
 
-OPCDA::tagOPCBROWSETYPE OPCItem::itemType(OPCDA::tagOPCBROWSETYPE value)
+OPCDA::tagOPCBROWSETYPE OPCItem::ItemType(OPCDA::tagOPCBROWSETYPE value)
 { 
 	return _itemType = value;
 }
 
-OPCItem* OPCItem::parent() { return _parent; }
-OPCItem* OPCItem::parent(OPCItem* value) { return _parent = value; }
+OPCItem* OPCItem::Parent() { return _parent; }
+OPCItem* OPCItem::Parent(OPCItem* value) { return _parent = value; }
 
-string* OPCItem::itemID()
+string OPCItem::Name()
 {
-	return &_itemID;
+	return _name;
 }
-string* OPCItem::itemID(const string& value)
+string OPCItem::Name(const string &value)
 {
-	return &(_itemID = value);
+	return _name = value;
 }
 
-bool OPCItem::enabled() 
+string OPCItem::ItemID()
+{
+	return _itemID;
+}
+string OPCItem::ItemID(const string &value)
+{
+	return _itemID = value;
+}
+
+bool OPCItem::Enabled() 
 {
 	return _enabled;
 }
-bool OPCItem::enabled(bool value)
+bool OPCItem::Enabled(bool value)
 {
 	return _enabled = value;
 }

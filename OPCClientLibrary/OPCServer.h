@@ -2,6 +2,7 @@
 
 #include <list>
 #include "OPCItem.h"
+#include "OPCGroup.h"
 #include <vector>
 
 namespace OPCClientLibrary {
@@ -22,7 +23,7 @@ namespace OPCClientLibrary {
 		void itemsChildren(vector<OPCItem*>*, IOPCBrowseServerAddressSpace*, LPWSTR, OPCItem* pParentItem = 0);
 	public:
 		OPCServer() {}
-		explicit OPCServer(const string& name) : _name(name) {}
+		explicit OPCServer(const string &name) : _name(name) {}
 		
 		const string Name();
 		const string Name(const string&);
@@ -35,11 +36,15 @@ namespace OPCClientLibrary {
 		virtual ~OPCServer() {
 			Disconnect();
 		}
-		IOPCServer* Connect();
+
+		void Connect();
 		void Disconnect();
-		const string ToString();
 		vector<OPCItem*>* GetItems();
-		
+
+		const ULONG AddGroup(OPCGroup&);
+		const void RemoveGroup(DWORD);
+
+		const string ToString();
 	};
 }
 

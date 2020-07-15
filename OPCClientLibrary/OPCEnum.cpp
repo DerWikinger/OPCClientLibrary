@@ -18,6 +18,9 @@ list<OPCServer*>* OPCEnum::BrowseOPCServers(const string& host, const string& us
 
 	// Идентификатор компонента просмотра списка серверов
 	hRes = CLSIDFromProgID(L"OPC.ServerList", &clsid);
+	//hRes = CLSIDFromString(L"{B28EEDB1-AC6F-11D1-84D5-00608CB8A7E9}", &clsid);
+	//"OPC.ServerList"
+	hRes = CLSIDFromString(L"{13486D51-4821-11D2-A494-3CB306C10000}", &clsid);
 
 	COSERVERINFO* pHostInfo = GetHostInfo(host, username, password, domain);
 
