@@ -72,7 +72,7 @@ namespace OPCClientLibraryTests
 		
 		TEST_METHOD(TestBrowseRemoteServers)
 		{
-			return; //skip the test
+			//return; //skip the test
 			string hostName = "192.168.43.250";
 			string username = "ETL";
 			string password = "123";
@@ -130,10 +130,42 @@ namespace OPCClientLibraryTests
 		{
 			OPCServer* srv = OPCEnum::GetOPCServerByName("InSAT", OPCEnum::BrowseOPCServers("localhost"));
 			srv->Connect();
-			vector<OPCItem*>* vec = srv->GetItems();
+			vector<OPCGroup*>* groups = GetGroups(*srv);
+
+			for_each(groups->begin(), groups->end(), [&](OPCGroup* group) {
+				ULONG phServerGroup = srv->AddGroup(*group);
+				Assert::IsTrue(phServerGroup != 0);
+				Assert::IsNotNull(group->ItemMgt());
+				srv->RemoveGroup(phServerGroup);
+				});
+			srv->Disconnect();
+		}
+
+		TEST_METHOD(TestSyncRead) {
+			OPCServer* srv = OPCEnum::GetOPCServerByName("InSAT", OPCEnum::BrowseOPCServers("localhost"));
+			srv->Connect();
+			vector<OPCGroup*>* groups = GetGroups(*srv);
+			if (groups->size() > 0) {
+				OPCGroup group = *groups->at(0);
+				ULONG phServerGroup = srv->AddGroup(group);
+				group.SyncRead();
+				USHORT qty = group.Items().at(0)->Quality();
+				_FILETIME ftTimeStamp1 = group.Items().at(0)->TimeStamp();
+				Assert::IsTrue(OPC_QUALITY_GOOD == qty);
+				Sleep(1000);
+				group.SyncRead();
+				_FILETIME ftTimeStamp2 = group.Items().at(0)->TimeStamp();
+				Assert::IsFalse(ftTimeStamp1.dwLowDateTime == ftTimeStamp2.dwLowDateTime);
+				srv->RemoveGroup(phServerGroup);
+			}
+			srv->Disconnect();
+		}
+
+		vector<OPCGroup*>* GetGroups(OPCServer& server) {
+			vector<OPCItem*>* vec = server.GetItems();
 			vector<OPCItem*> filtred;
-			vector<OPCGroup*> groups;
-			
+			vector<OPCGroup*>* groups = new vector<OPCGroup*>();
+
 			for_each(vec->begin(), vec->end(), [&](OPCItem* item) {
 				if (item->ItemType() == tagOPCBROWSETYPE::OPC_BRANCH) {
 					int count = 0;
@@ -145,17 +177,10 @@ namespace OPCClientLibraryTests
 						}
 						});
 					if (count > 0) {
-						groups.push_back(new OPCGroup(item->ItemID(), filtred));
-					}
-				}
+						groups->push_back(new OPCGroup(item->ItemID(), filtred));
+					}				}
 				});
-			for_each(groups.begin(), groups.end(), [&](OPCGroup* group) {
-				ULONG phServerGroup = srv->AddGroup(*group);
-				Assert::IsTrue(phServerGroup != 0);
-				Assert::IsNotNull(group->ItemMgt());
-				srv->RemoveGroup(phServerGroup);
-				});
-			srv->Disconnect();
+			return groups;
 		}
 
 		TEST_METHOD(TestServerException) {

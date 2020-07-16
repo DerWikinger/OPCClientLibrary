@@ -96,9 +96,11 @@ COSERVERINFO* OPCEnum::GetHostInfo(const string& hostname, const string& usernam
 
 		pAuthInfo = new COAUTHINFO();
 		pAuthInfo->pAuthIdentityData = pAuthIdentity;
+		//pAuthInfo->dwAuthnSvc = RPC_C_AUTHN_WINNT;
 		pAuthInfo->dwAuthnSvc = RPC_C_AUTHN_WINNT;
 		pAuthInfo->pwszServerPrincName = NULL;
 		pAuthInfo->dwAuthnLevel = RPC_C_AUTHN_LEVEL_CONNECT;
+		//pAuthInfo->dwAuthnLevel = RPC_C_AUTHN_DEFAULT;
 		pAuthInfo->dwImpersonationLevel = RPC_C_IMP_LEVEL_IMPERSONATE;
 		pAuthInfo->dwCapabilities = EOAC_NONE;
 		pAuthInfo->dwAuthzSvc = RPC_C_AUTHZ_NONE;

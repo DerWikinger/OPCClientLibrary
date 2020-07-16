@@ -16,7 +16,7 @@ namespace OPCClientLibrary {
 		IOPCItemMgt* _pItemMgt;
 
 	public:
-		explicit OPCGroup(const string &name, vector<OPCItem*> &items) : _name(name), _items(items) {}
+		explicit OPCGroup(const string& name, vector<OPCItem*>& items) : _name(name), _items(items) {}
 		virtual ~OPCGroup() {
 			if (_pItemMgt) {
 				_pItemMgt->Release();
@@ -38,6 +38,8 @@ namespace OPCClientLibrary {
 		const IOPCItemMgt* ItemMgt(IOPCItemMgt* value) {
 			return _pItemMgt = value;
 		}
+
+		const void SyncRead();
 	};
 }
 

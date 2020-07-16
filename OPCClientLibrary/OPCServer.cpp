@@ -26,6 +26,33 @@ void OPCServer::Connect() {
 		throw hRes;
 	}
 
+	SOLE_AUTHENTICATION_INFO authInfo;
+	SecureZeroMemory(&authInfo, sizeof(SOLE_AUTHENTICATION_INFO));
+
+	authInfo.dwAuthnSvc = RPC_C_AUTHN_WINNT;
+	authInfo.dwAuthzSvc = RPC_C_AUTHZ_NONE;
+	authInfo.pAuthInfo = _serverInfo->pAuthInfo;
+
+	SOLE_AUTHENTICATION_LIST authInfoList;
+	authInfoList.cAuthInfo = 1;
+	authInfoList.aAuthInfo = &authInfo;
+
+	//hRes = CoInitializeSecurity(
+	//	NULL,
+	//	-1,
+	//	NULL,
+	//	NULL,
+	//	RPC_C_AUTHN_LEVEL_CALL,
+	//	RPC_C_IMP_LEVEL_IMPERSONATE,
+	//	&authInfoList,
+	//	EOAC_NONE,
+	//	NULL);
+	//
+	//if (FAILED(hRes))
+	//{
+	//	throw hRes;
+	//}
+
 	_server = (IOPCServer*)pResults->pItf;
 }
 
@@ -105,7 +132,7 @@ vector<OPCItem*>* OPCServer::GetItems()
 	return pItems;
 }
 
-void OPCServer::itemsChildren(vector<OPCItem*>* pItems, IOPCBrowseServerAddressSpace* pParent, LPWSTR szFilterCriteria, OPCItem* pParentItem) {
+void OPCServer::itemsChildren(vector<OPCItem*>* pItems, IOPCBrowseServerAddressSpace* pBrowse, LPWSTR szFilterCriteria, OPCItem* pParentItem) {
 
 	tagOPCBROWSEELEMENT* tags = new tagOPCBROWSEELEMENT();
 	
@@ -118,14 +145,14 @@ void OPCServer::itemsChildren(vector<OPCItem*>* pItems, IOPCBrowseServerAddressS
 	OPCItem* item;
 	HRESULT hRes;
 	
-	hRes = pParent->BrowseOPCItemIDs(tagOPCBROWSETYPE::OPC_LEAF, szFilterCriteria, VARENUM::VT_EMPTY, 0, &pEnum);
+	hRes = pBrowse->BrowseOPCItemIDs(tagOPCBROWSETYPE::OPC_LEAF, szFilterCriteria, VARENUM::VT_EMPTY, 0, &pEnum);
 	if (FAILED(hRes)) throw hRes;
 	int nLeavesCount = 0;
 	if (hRes == S_OK) {
 		pEnum->Next(1, &strName, &cnt);
 		while (cnt != 0)
 		{
-			pParent->GetItemID(strName, &szItemID); // получает полный идентификатор тега
+			pBrowse->GetItemID(strName, &szItemID); // получает полный идентификатор тега
 			ws = wstring(strName);
 			name = string(ws.begin(), ws.end());
 			ws = wstring(szItemID);
@@ -142,14 +169,14 @@ void OPCServer::itemsChildren(vector<OPCItem*>* pItems, IOPCBrowseServerAddressS
 		}
 	}
 
-	hRes = pParent->BrowseOPCItemIDs(tagOPCBROWSETYPE::OPC_BRANCH, szFilterCriteria, VARENUM::VT_EMPTY, 0, &pEnum);
+	hRes = pBrowse->BrowseOPCItemIDs(tagOPCBROWSETYPE::OPC_BRANCH, szFilterCriteria, VARENUM::VT_EMPTY, 0, &pEnum);
 	if (FAILED(hRes)) throw hRes;
 	int nBranchesCount = 0;
 	if (hRes == S_OK) {
 		pEnum->Next(1, &strName, &cnt);
 		while (cnt != 0)
 		{
-			pParent->GetItemID(strName, &szItemID);
+			pBrowse->GetItemID(strName, &szItemID);
 			ws = wstring(strName);
 			name = string(ws.begin(), ws.end());
 			ws = wstring(szItemID);
@@ -160,9 +187,9 @@ void OPCServer::itemsChildren(vector<OPCItem*>* pItems, IOPCBrowseServerAddressS
 			item->ItemID(itemID);
 			item->Enabled(true);
 			pItems->push_back(item);
-			pParent->ChangeBrowsePosition(tagOPCBROWSEDIRECTION::OPC_BROWSE_TO, szItemID);
-			OPCServer::itemsChildren(pItems, pParent, szFilterCriteria, item);
-			pParent->ChangeBrowsePosition(tagOPCBROWSEDIRECTION::OPC_BROWSE_UP, szItemID);
+			pBrowse->ChangeBrowsePosition(tagOPCBROWSEDIRECTION::OPC_BROWSE_TO, szItemID);
+			OPCServer::itemsChildren(pItems, pBrowse, szFilterCriteria, item);
+			pBrowse->ChangeBrowsePosition(tagOPCBROWSEDIRECTION::OPC_BROWSE_UP, szItemID);
 			pEnum->Next(1, &strName, &cnt);
 			nBranchesCount++;
 		}
@@ -187,6 +214,7 @@ const ULONG OPCServer::AddGroup(OPCGroup &group) {
 	{
 		throw hRes;
 	}
+
 	group.ItemMgt(pItemMgt);
 	
 	DWORD dwCount = group.Items().size();
@@ -199,6 +227,7 @@ const ULONG OPCServer::AddGroup(OPCGroup &group) {
 		pItems[i].szAccessPath = NULL;
 		pItems[i].bActive = item->Enabled();
 		pItems[i].hClient = item->ClientItem();
+		//pItems[i].hClient = 0;
 		pItems[i].vtRequestedDataType = VT_EMPTY;
 		pItems[i].dwBlobSize = 0;
 		pItems[i].pBlob = NULL;
@@ -211,6 +240,14 @@ const ULONG OPCServer::AddGroup(OPCGroup &group) {
 	if (FAILED(hRes))
 	{
 		throw hRes;
+	}
+	if (hRes == S_OK) {
+		for (int i = 0; i < dwCount; i++) {
+			OPCItem* item = group.Items().at(i);
+			item->AccessRights(pResults[i].dwAccessRights);
+			item->CannonicalDataType(pResults[i].vtCanonicalDataType);
+			item->ServerHandle(pResults[i].hServer);
+		}
 	}
 	return phServerGroup;	
 }
