@@ -15,7 +15,7 @@ void OPCServer::Connect() {
 	IID IID_IOPCBrowseServerAddressSpace = __uuidof(IOPCBrowseServerAddressSpace);
 	HRESULT hRes;
 	DWORD coInt = 0x0;
-	hRes = CoInitialize(NULL);
+	//hRes = CoInitialize(NULL);
 	MULTI_QI* pResults = new MULTI_QI();
 	pResults->pIID = &IID_IOPCSERVER;
 	//pResults->pIID = new IID[2] { IID_IOPCSERVER, IID_IOPCBrowseServerAddressSpace };
@@ -26,16 +26,16 @@ void OPCServer::Connect() {
 		throw hRes;
 	}
 
-	SOLE_AUTHENTICATION_INFO authInfo;
-	SecureZeroMemory(&authInfo, sizeof(SOLE_AUTHENTICATION_INFO));
+	//SOLE_AUTHENTICATION_INFO authInfo;
+	//SecureZeroMemory(&authInfo, sizeof(SOLE_AUTHENTICATION_INFO));
 
-	authInfo.dwAuthnSvc = RPC_C_AUTHN_WINNT;
-	authInfo.dwAuthzSvc = RPC_C_AUTHZ_NONE;
-	authInfo.pAuthInfo = _serverInfo->pAuthInfo;
+	//authInfo.dwAuthnSvc = RPC_C_AUTHN_WINNT;
+	//authInfo.dwAuthzSvc = RPC_C_AUTHZ_NONE;
+	//authInfo.pAuthInfo = _serverInfo->pAuthInfo;
 
-	SOLE_AUTHENTICATION_LIST authInfoList;
-	authInfoList.cAuthInfo = 1;
-	authInfoList.aAuthInfo = &authInfo;
+	//SOLE_AUTHENTICATION_LIST authInfoList;
+	//authInfoList.cAuthInfo = 1;
+	//authInfoList.aAuthInfo = &authInfo;
 
 	//hRes = CoInitializeSecurity(
 	//	NULL,
@@ -61,7 +61,7 @@ void OPCServer::Disconnect() {
 		_server->Release();
 		_server = NULL;
 	}	
-	CoUninitialize();
+	//CoUninitialize();
 }
 
 const string OPCServer::Name() {
@@ -216,43 +216,11 @@ const ULONG OPCServer::AddGroup(OPCGroup &group) {
 	}
 
 	group.ItemMgt(pItemMgt);
-	
-	DWORD dwCount = group.Items().size();
-	ULONG opcHandle = 1;
-	tagOPCITEMDEF* pItems = (tagOPCITEMDEF*)CoTaskMemAlloc(dwCount * sizeof(tagOPCITEMDEF));
-	for (int i = 0; i < dwCount; i++) {
-		OPCItem* item = group.Items().at(i);
-		BSTR itemID = _com_util::ConvertStringToBSTR(item->ItemID().c_str());
-		pItems[i].szItemID = itemID;
-		pItems[i].szAccessPath = NULL;
-		pItems[i].bActive = item->Enabled();
-		pItems[i].hClient = item->ClientItem();
-		//pItems[i].hClient = 0;
-		pItems[i].vtRequestedDataType = VT_EMPTY;
-		pItems[i].dwBlobSize = 0;
-		pItems[i].pBlob = NULL;
-	}
-
-	tagOPCITEMRESULT* pResults = NULL;
-	HRESULT* pErrors = NULL;
-
-	hRes = pItemMgt->AddItems(dwCount, pItems, &pResults, &pErrors);
-	if (FAILED(hRes))
-	{
-		throw hRes;
-	}
-	if (hRes == S_OK) {
-		for (int i = 0; i < dwCount; i++) {
-			OPCItem* item = group.Items().at(i);
-			item->AccessRights(pResults[i].dwAccessRights);
-			item->CannonicalDataType(pResults[i].vtCanonicalDataType);
-			item->ServerHandle(pResults[i].hServer);
-		}
-	}
+	group.HServer(phServerGroup);
 	return phServerGroup;	
 }
 
-const void OPCServer::RemoveGroup(ULONG phServerGroup)
+const void OPCServer::RemoveGroup(OPCGroup& group, ULONG phServerGroup)
 {
 	if (_server == NULL)
 	{

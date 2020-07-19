@@ -14,6 +14,9 @@ namespace OPCClientLibrary {
 		vector<OPCItem*> _items;
 		string _name = "Nonamed OPCGroup";
 		IOPCItemMgt* _pItemMgt;
+		IConnectionPoint* _pDataCallback;
+		DWORD _dwCookie;
+		ULONG _phServer;
 
 	public:
 		explicit OPCGroup(const string& name, vector<OPCItem*>& items) : _name(name), _items(items) {}
@@ -31,13 +34,26 @@ namespace OPCClientLibrary {
 			return _name;
 		}
 
-		const IOPCItemMgt* ItemMgt() const {
+		IOPCItemMgt* ItemMgt() const {
 			return _pItemMgt;
 		}
 
-		const IOPCItemMgt* ItemMgt(IOPCItemMgt* value) {
+		IOPCItemMgt* ItemMgt(IOPCItemMgt* value) {
 			return _pItemMgt = value;
 		}
+
+		const ULONG HServer() {
+			return _phServer;
+		}
+
+		const ULONG HServer(ULONG value) {
+			return _phServer = value;
+		}
+
+		const void Advise();
+		const void Unadvise();
+		const void AddItems();
+		const void RemoveItems();
 
 		const void SyncRead();
 	};

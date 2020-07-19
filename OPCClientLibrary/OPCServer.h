@@ -42,7 +42,7 @@ namespace OPCClientLibrary {
 		vector<OPCItem*>* GetItems();
 
 		const ULONG AddGroup(OPCGroup&);
-		const void RemoveGroup(DWORD);
+		const void RemoveGroup(OPCGroup&, DWORD);
 
 		const string ToString();
 	};
