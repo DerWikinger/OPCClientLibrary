@@ -36,8 +36,14 @@ const void OPCGroup::SyncRead() {
 		OPCItem* pItem = find(pItemState[i].hClient);
 		pItem->Quality(pItemState[i].wQuality);
 		pItem->Value(pItemState[i].vDataValue);
+		if (pItemState[i].vDataValue.vt == VT_BSTR) {
+			SysAllocString(pItemState[i].vDataValue.bstrVal);
+		}
 		pItem->TimeStamp(pItemState[i].ftTimeStamp);
 	}
+	CoTaskMemFree(pItemState);
+	CoTaskMemFree(pResults);
+	CoTaskMemFree(pErrors);
 }
 
 const void OPCGroup::AddItems() {
