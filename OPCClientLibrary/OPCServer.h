@@ -41,8 +41,10 @@ namespace OPCClientLibrary {
 		void Disconnect();
 		vector<OPCItem*>* GetItems();
 
-		const ULONG AddGroup(OPCGroup&);
-		const void RemoveGroup(OPCGroup&, DWORD);
+		const ULONG AddGroup(OPCGroup&, ULONG updateRate = 1000);
+		const void RemoveGroup(OPCGroup&);
+
+		const VARENUM GetItemDataType(const string&);
 
 		const string ToString();
 	};

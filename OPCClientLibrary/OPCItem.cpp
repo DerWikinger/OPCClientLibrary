@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "OPCItem.h"
 
+
 using namespace OPCClientLibrary;
 
 OPCDA::tagOPCBROWSETYPE OPCItem::ItemType() 
@@ -19,14 +20,32 @@ ULONG OPCItem::ClientItem(ULONG value) { return _hClientItem = value; }
 OPCItem* OPCItem::Parent() { return _parent; }
 OPCItem* OPCItem::Parent(OPCItem* value) { return _parent = value; }
 
-USHORT OPCItem::Quality() { return _quality; }
-USHORT OPCItem::Quality(USHORT value) { return _quality = value; }
+USHORT OPCItem::Quality() {
+	lock_guard<shared_mutex> lock(_mtx);
+	return _quality; 
+}
+USHORT OPCItem::Quality(USHORT value) { 
+	lock_guard<shared_mutex> lock(_mtx);
+	return _quality = value; 
+}
 
-VARIANT OPCItem::Value() { return _value; }
-VARIANT OPCItem::Value(VARIANT value) { return _value = value; }
+VARIANT OPCItem::Value() { 
+	lock_guard<shared_mutex> lock(_mtx);
+	return _value; 
+}
+VARIANT OPCItem::Value(VARIANT value) { 
+	lock_guard<shared_mutex> lock(_mtx);
+	return _value = value; 
+}
 
-_FILETIME OPCItem::TimeStamp() { return _ftTimeStamp; }
-_FILETIME OPCItem::TimeStamp(_FILETIME value) { return _ftTimeStamp = value; }
+_FILETIME OPCItem::TimeStamp() { 
+	lock_guard<shared_mutex> lock(_mtx);
+	return _ftTimeStamp; 
+}
+_FILETIME OPCItem::TimeStamp(_FILETIME value) { 
+	lock_guard<shared_mutex> lock(_mtx);
+	return _ftTimeStamp = value; 
+}
 
 string OPCItem::Name()
 {

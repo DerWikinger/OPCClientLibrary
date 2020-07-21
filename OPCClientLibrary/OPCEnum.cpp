@@ -32,7 +32,7 @@ list<OPCServer*>* OPCEnum::BrowseOPCServers(const string& host, const string& us
 
 	DWORD clsCTX = CLSCTX_LOCAL_SERVER;
 	if (host != "localhost" && host != "127.0.0.1") {
-		clsCTX = CLSCTX_REMOTE_SERVER;
+		clsCTX = CLSCTX_INPROC;
 	}
 
 	hRes = CoCreateInstanceEx(clsid, NULL, clsCTX, pHostInfo, 1, pResults);
@@ -52,15 +52,14 @@ list<OPCServer*>* OPCEnum::BrowseOPCServers(const string& host, const string& us
 	}
 	pServerList->EnumClassesOfCategories(ccomp, &clsidcat, 0, NULL, &pIOPCEnumGuid);
 
-	list<OLECHAR*> lst;
+	list<LPWSTR> lst;
 
-	OLECHAR* pszProgID; // буфер для записи ProgID серверов
-	OLECHAR* pszUserType; // буфер для записи описания серверов
+	LPWSTR pszProgID;
+	LPWSTR pszUserType;
 
-	GUID guid; // Сюда будет записывать идентификатор текущего сервера
-	int nServerCnt = 0; // общее количество доступных серверов
-	unsigned long iRetSvr; // количество серверов, предоставленных запросом
-	// получение первого доступного идентификатора сервера
+	GUID guid;
+	int nServerCnt = 0;
+	unsigned long iRetSvr;
 
 	list<OPCServer*>* result = new list<OPCServer*>();
 	((IOPCEnumGUID*)pIOPCEnumGuid)->Next(1, &guid, &iRetSvr);

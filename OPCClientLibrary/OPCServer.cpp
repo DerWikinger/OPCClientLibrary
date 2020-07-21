@@ -196,14 +196,15 @@ void OPCServer::itemsChildren(vector<OPCItem*>* pItems, IOPCBrowseServerAddressS
 	}
 }
 
-const ULONG OPCServer::AddGroup(OPCGroup &group) {
+const ULONG OPCServer::AddGroup(OPCGroup &group, ULONG updateRate) {
 	if (_server == NULL)
 	{
 		throw 123; // Сервер не подключен
 	}
 	HRESULT hRes;
 	BSTR name = _com_util::ConvertStringToBSTR(group.Name().c_str());
-	ULONG updateRate = 1000, hClientGroup = 1, phServerGroup;
+	ULONG hClientGroup, phServerGroup;
+	hClientGroup = group.ClientGroup();
 	IID IID_IOPCItemMgt = __uuidof(IOPCItemMgt);
 	IOPCItemMgt* pItemMgt = NULL;
 	long bActive = 1;
@@ -215,19 +216,74 @@ const ULONG OPCServer::AddGroup(OPCGroup &group) {
 		throw hRes;
 	}
 
+	for_each(group.Items().begin(), group.Items().end(), [&](OPCItem* item) {
+		item->CannonicalDataType(GetItemDataType(item->ItemID()));
+		});
+
 	group.ItemMgt(pItemMgt);
-	group.HServer(phServerGroup);
+	group.ServerGroup(phServerGroup);
 	return phServerGroup;	
 }
 
-const void OPCServer::RemoveGroup(OPCGroup& group, ULONG phServerGroup)
+const void OPCServer::RemoveGroup(OPCGroup& group)
 {
 	if (_server == NULL)
 	{
 		throw 123; // Сервер не подключен
 	}
-	_server->RemoveGroup(phServerGroup, 1);
+	_server->RemoveGroup(group.ServerGroup(), 1);
 }
+
+const VARENUM OPCServer::GetItemDataType(const string& itemID) {
+	HRESULT hRes;
+	IID IID_ItemProperties = __uuidof(IOPCItemProperties);
+	IOPCItemProperties* pItemProperies;
+	hRes = _server->QueryInterface(IID_ItemProperties, (void**)&pItemProperies);
+	if (FAILED(hRes)) {
+		throw hRes;
+	}
+	BSTR str = _com_util::ConvertStringToBSTR(itemID.c_str());
+	LPWSTR szItemID = str;
+	
+	DWORD dwCount;
+	DWORD* pdwPropertyIDs;
+	LPWSTR* ppDescription;
+	USHORT* pvtDataType;
+	VARENUM result = VT_EMPTY;
+	try {
+		hRes = pItemProperies->QueryAvailableProperties(szItemID, &dwCount, &pdwPropertyIDs, &ppDescription, &pvtDataType);
+		if (FAILED(hRes)) {
+			throw hRes;
+		}
+		DWORD dwPropertyID;
+		USHORT vtDataType;
+
+		auto find = [&]() -> VARENUM {
+			for (int i = 0; i < dwCount; i++) {
+				dwPropertyID = pdwPropertyIDs[i];
+				vtDataType = pvtDataType[i];
+				if (dwPropertyID == 2) // Value DataType
+				{
+					return VARENUM(vtDataType);
+				}
+				//description = ppDescription[i];
+			}
+			return VT_EMPTY;
+		};
+		result = find();
+	}
+	catch (HRESULT hresult) {
+
+	}
+
+	SysFreeString(str);
+	CoTaskMemFree(pdwPropertyIDs);
+	CoTaskMemFree(ppDescription);
+	CoTaskMemFree(pvtDataType);
+
+	return result;
+}
+
 
 const string OPCServer::ToString() {
 	//string res = "OPCServerObject";

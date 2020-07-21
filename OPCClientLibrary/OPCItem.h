@@ -1,4 +1,5 @@
 #pragma once
+#include <shared_mutex>
 
 namespace OPCClientLibrary {
 
@@ -14,15 +15,16 @@ namespace OPCClientLibrary {
 		ULONG _hClientItem;
 		OPCDA::tagOPCBROWSETYPE _itemType;
 		bool _enabled;
-		ULONG _hServer;
+		ULONG _hServerItem;
 		VARTYPE _vtCanonicalDataType;
 		DWORD _dwAccessRights;
 		USHORT _quality;
 		VARIANT _value;
 		_FILETIME _ftTimeStamp;
+		shared_mutex _mtx;
 
 	public:
-		explicit OPCItem(const string& name) : _name(name), _hClientItem(++hClientItems) { }
+		explicit OPCItem(const string& name = "Nonamed item") : _name(name), _hClientItem(++hClientItems) { }
 		virtual ~OPCItem() {}
 		OPCItem* Parent();
 		OPCItem* Parent(OPCItem* value);
@@ -32,8 +34,8 @@ namespace OPCClientLibrary {
 		string ItemID(const string &value);
 		ULONG ClientItem();
 		ULONG ClientItem(ULONG value);
-		ULONG ServerHandle() { return _hServer; };
-		ULONG ServerHandle(ULONG value) { return _hServer = value; };
+		ULONG ServerHandle() { return _hServerItem; };
+		ULONG ServerHandle(ULONG value) { return _hServerItem = value; };
 		VARTYPE CannonicalDataType() { return _vtCanonicalDataType; };
 		VARTYPE CannonicalDataType(VARTYPE value) { return _vtCanonicalDataType = value; };
 		DWORD AccessRights() { return _dwAccessRights; };

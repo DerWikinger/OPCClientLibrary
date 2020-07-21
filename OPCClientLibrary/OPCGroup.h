@@ -9,6 +9,9 @@ namespace OPCClientLibrary {
 	using namespace std;
 	using namespace OPCDA;
 
+	static DWORD static_dwTransactionID = 0;
+	static DWORD static_hClientGroup = 0;
+
 	class __declspec(dllexport) OPCGroup
 	{
 		vector<OPCItem*> _items;
@@ -16,10 +19,13 @@ namespace OPCClientLibrary {
 		IOPCItemMgt* _pItemMgt;
 		IConnectionPoint* _pDataCallback;
 		DWORD _dwCookie;
+		DWORD _dwTransactionID;
+		DWORD _hClientGroup;
 		ULONG _phServer;
 
 	public:
-		explicit OPCGroup(const string& name, vector<OPCItem*>& items) : _name(name), _items(items) {}
+		explicit OPCGroup(const string& name, vector<OPCItem*>& items) : 
+			_name(name), _items(items), _hClientGroup(++static_hClientGroup){}
 		virtual ~OPCGroup() {
 			if (_pItemMgt) {
 				_pItemMgt->Release();
@@ -34,6 +40,14 @@ namespace OPCClientLibrary {
 			return _name;
 		}
 
+		const DWORD TransactionID() const {
+			return _dwTransactionID;
+		}
+
+		const DWORD ClientGroup() const {
+			return _hClientGroup;
+		}
+
 		IOPCItemMgt* ItemMgt() const {
 			return _pItemMgt;
 		}
@@ -42,11 +56,11 @@ namespace OPCClientLibrary {
 			return _pItemMgt = value;
 		}
 
-		const ULONG HServer() {
+		const ULONG ServerGroup() {
 			return _phServer;
 		}
 
-		const ULONG HServer(ULONG value) {
+		const ULONG ServerGroup(ULONG value) {
 			return _phServer = value;
 		}
 
@@ -55,7 +69,8 @@ namespace OPCClientLibrary {
 		const void AddItems();
 		const void RemoveItems();
 
-		const void SyncRead();
+		const void SyncRead(bool ds_device = false);
+		const void AsyncRead();
 	};
 }
 

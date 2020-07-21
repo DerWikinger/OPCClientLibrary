@@ -7,6 +7,8 @@
 #include <list>
 #include <algorithm>
 #include "ServerException.h"
+#include <thread>
+#include <chrono>
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 using namespace std;
@@ -72,11 +74,12 @@ namespace OPCClientLibraryTests
 		
 		TEST_METHOD(TestBrowseRemoteServers)
 		{
-			//return; //skip the test
+			return; //skip the test
 			string hostName = "192.168.43.250";
 			string username = "ETL";
 			string password = "123";
 			COSERVERINFO* sInfo = OPCEnum::GetHostInfo(hostName, username, password);
+			//list<OPCServer*>* lst = OPCEnum::BrowseOPCServers(hostName, username, password);
 			OPCServer server("InSAT.ModbusOPCServer.DA");
 			GUID guid;
 			// InSAT.ModbusOPCServer.DA
@@ -133,10 +136,13 @@ namespace OPCClientLibraryTests
 			vector<OPCGroup*>* groups = GetGroups(*srv);
 
 			for_each(groups->begin(), groups->end(), [&](OPCGroup* group) {
+				if (group->Items().size() == 8) return; //Это костыль, чтобы обойти создание последней группы
 				ULONG phServerGroup = srv->AddGroup(*group);
+				(*group).AddItems();
 				Assert::IsTrue(phServerGroup != 0);
 				Assert::IsNotNull(group->ItemMgt());
-				srv->RemoveGroup(phServerGroup);
+				(*group).RemoveItems();
+				srv->RemoveGroup(*group);
 				});
 			srv->Disconnect();
 		}
@@ -148,6 +154,7 @@ namespace OPCClientLibraryTests
 			if (groups->size() > 0) {
 				OPCGroup group = *groups->at(0);
 				ULONG phServerGroup = srv->AddGroup(group);
+				group.AddItems();
 				group.SyncRead();
 				USHORT qty = group.Items().at(0)->Quality();
 				_FILETIME ftTimeStamp1 = group.Items().at(0)->TimeStamp();
@@ -156,9 +163,82 @@ namespace OPCClientLibraryTests
 				group.SyncRead();
 				_FILETIME ftTimeStamp2 = group.Items().at(0)->TimeStamp();
 				Assert::IsFalse(ftTimeStamp1.dwLowDateTime == ftTimeStamp2.dwLowDateTime);
-				srv->RemoveGroup(phServerGroup);
+				group.RemoveItems();
+				srv->RemoveGroup(group);
 			}
 			srv->Disconnect();
+		}
+
+		TEST_METHOD(TestAsyncRead) {
+			OPCServer* srv = OPCEnum::GetOPCServerByName("InSAT", OPCEnum::BrowseOPCServers("localhost"));
+			srv->Connect();
+			vector<OPCGroup*>* groups = GetGroups(*srv);
+			if (groups->size() > 0) {
+				OPCGroup group = *groups->at(0);
+				ULONG phServerGroup = srv->AddGroup(group, 200);
+				group.Advise();
+				group.AddItems();	
+				auto wait = [] {
+					Sleep(1000);
+				};
+
+				for (int i = 0; i < 5; i++) {
+					group.AsyncRead();
+					std::this_thread::sleep_for(500ms);
+					//wait();
+					OPCItem& pItem1 = *group.Items().at(1); //Sin
+					_FILETIME ftTimeStamp1(pItem1.TimeStamp());
+					float value1(pItem1.Value().fltVal);
+					group.AsyncRead();
+					//wait();
+					std::this_thread::sleep_for(500ms);
+					OPCItem& pItem2 = *group.Items().at(1); //Sin
+					_FILETIME ftTimeStamp2(pItem2.TimeStamp());
+					USHORT qty = pItem2.Quality();
+					float value2(pItem2.Value().fltVal);
+					
+					if (qty != OPC_QUALITY_GOOD) MessageBox(0, L"Качество чтения не GOOD", L"Ошибка", 0);
+					if (ftTimeStamp1.dwHighDateTime == ftTimeStamp2.dwHighDateTime &&
+						ftTimeStamp1.dwLowDateTime == ftTimeStamp2.dwLowDateTime) MessageBox(0, L"Метка чтения не поменялась", L"Ошибка", 0);
+				}
+				group.RemoveItems();
+				group.Unadvise();
+				srv->RemoveGroup(group);
+			}
+			srv->Disconnect();
+
+		}
+
+		LPWSTR GetQuality(USHORT qty) {
+			switch (qty)
+			{
+			case 0x00: return L"Bad";
+			case 0x04: return L"Config Error";
+			case 0x08: return L"Not Connected";
+			case 0x0C: return L"Device Failure";
+			case 0x10: return L"Sensor Failure";
+			case 0x14: return L"Last Known";
+			case 0x18: return L"Comm Failure";
+			case 0x1C: return L"Out of Service";
+			case 0x20: return L"Initializing";
+			case 0x40: return L"Uncertain";
+			case 0x44: return L"Last Usable";
+			case 0x50: return L"Sensor Calibration";
+			case 0x54: return L"EGU Exceeded";
+			case 0x58: return L"Sub Normal";
+			case 0xC0: return L"Good";
+			case 0xD8: return L"Local Override"; default: return L"Unknown";
+			}
+		}
+
+		LPWSTR GetTime(_FILETIME ft) {
+			DWORD hDT = ft.dwHighDateTime;
+			DWORD lDT = ft.dwLowDateTime;
+			string result = std::to_string(hDT) + " : " + std::to_string(lDT);
+			BSTR bstr = _com_util::ConvertStringToBSTR(result.c_str());
+			return bstr;
+			//COleDateTime dt = COleDateTime(ft);
+			//return dt.Format(L"%Y-%m-%d %H:%M:%S");
 		}
 
 		vector<OPCGroup*>* GetGroups(OPCServer& server) {
