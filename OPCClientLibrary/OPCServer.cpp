@@ -26,32 +26,34 @@ void OPCServer::Connect() {
 		throw hRes;
 	}
 
-	//SOLE_AUTHENTICATION_INFO authInfo;
-	//SecureZeroMemory(&authInfo, sizeof(SOLE_AUTHENTICATION_INFO));
+	if (_serverInfo->pAuthInfo != NULL) {
+		SOLE_AUTHENTICATION_INFO authInfo;
+		SecureZeroMemory(&authInfo, sizeof(SOLE_AUTHENTICATION_INFO));
 
-	//authInfo.dwAuthnSvc = RPC_C_AUTHN_WINNT;
-	//authInfo.dwAuthzSvc = RPC_C_AUTHZ_NONE;
-	//authInfo.pAuthInfo = _serverInfo->pAuthInfo;
+		authInfo.dwAuthnSvc = RPC_C_AUTHN_WINNT;
+		authInfo.dwAuthzSvc = RPC_C_AUTHZ_NONE;
+		authInfo.pAuthInfo = _serverInfo->pAuthInfo;
 
-	//SOLE_AUTHENTICATION_LIST authInfoList;
-	//authInfoList.cAuthInfo = 1;
-	//authInfoList.aAuthInfo = &authInfo;
+		SOLE_AUTHENTICATION_LIST authInfoList;
+		authInfoList.cAuthInfo = 1;
+		authInfoList.aAuthInfo = &authInfo;
 
-	//hRes = CoInitializeSecurity(
-	//	NULL,
-	//	-1,
-	//	NULL,
-	//	NULL,
-	//	RPC_C_AUTHN_LEVEL_CALL,
-	//	RPC_C_IMP_LEVEL_IMPERSONATE,
-	//	&authInfoList,
-	//	EOAC_NONE,
-	//	NULL);
-	//
-	//if (FAILED(hRes))
-	//{
-	//	throw hRes;
-	//}
+		hRes = CoInitializeSecurity(
+			NULL,
+			-1,
+			NULL,
+			NULL,
+			RPC_C_AUTHN_LEVEL_CONNECT,
+			RPC_C_IMP_LEVEL_IMPERSONATE,
+			&authInfoList,
+			EOAC_NONE,
+			NULL);
+
+		if (FAILED(hRes))
+		{
+			throw hRes;
+		}
+	}	
 
 	_server = (IOPCServer*)pResults->pItf;
 }

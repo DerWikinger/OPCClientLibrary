@@ -74,7 +74,7 @@ namespace OPCClientLibraryTests
 		
 		TEST_METHOD(TestBrowseRemoteServers)
 		{
-			return; //skip the test
+			//return; //skip the test
 			string hostName = "192.168.43.250";
 			string username = "ETL";
 			string password = "123";
