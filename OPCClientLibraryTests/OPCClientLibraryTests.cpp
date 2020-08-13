@@ -61,7 +61,6 @@ namespace OPCClientLibraryTests
 			string hostName = "127.0.0.1";
 			list<OPCServer*>* lst = OPCEnum::BrowseOPCServers(hostName);
 			Assert::IsFalse(lst->size() == 0);
-			
 			hostName = "uncorrectAddress";
 
 			auto func = [&]() mutable -> list<OPCServer*>* {
@@ -90,6 +89,7 @@ namespace OPCClientLibraryTests
 		TEST_METHOD(TestBrowseRemoteServers)
 		{
 			return; //skip the test
+
 			string hostName = "192.168.43.250";
 			//string username = "ETL";
 			//string password = "123";
@@ -169,6 +169,49 @@ namespace OPCClientLibraryTests
 
 		TEST_METHOD(TestRemoteSyncRead) {
 			return; //skip the test
+			OPCServer* srv = OPCEnum::GetOPCServerByName("InSAT", OPCEnum::BrowseOPCServers("192.168.43.250"));
+			srv->Connect();
+			vector<OPCGroup*>* groups = GetGroups(*srv);
+			if (groups->size() > 0) {
+				OPCGroup group = *groups->at(4);
+				ULONG phServerGroup = srv->AddGroup(group);
+				group.AddItems();
+				group.SyncRead();
+				OPCItem* pItem = group.Items().at(0);
+				USHORT qty = pItem->Quality();
+				_FILETIME ftTimeStamp1 = pItem->TimeStamp();
+				Assert::IsTrue(OPC_QUALITY_GOOD == qty);
+				std::cout << ConvertToString(pItem->Value()) << std::endl;
+				LPWSTR strVal = _com_util::ConvertStringToBSTR(ConvertToString(pItem->Value()).c_str());
+				MessageBox(0, strVal, L"Value1", 0);
+				Sleep(5000);
+				group.SyncRead();
+				_FILETIME ftTimeStamp2 = pItem->TimeStamp();
+				std::cout << ConvertToString(pItem->Value()) << std::endl;
+				strVal = _com_util::ConvertStringToBSTR(ConvertToString(pItem->Value()).c_str());
+				MessageBox(0, strVal, L"Value2", 0);
+				Assert::IsFalse(ftTimeStamp1.dwLowDateTime == ftTimeStamp2.dwLowDateTime);
+				group.RemoveItems();
+				srv->RemoveGroup(group);
+			}
+			srv->Disconnect();
+		}
+
+		string ConvertToString(VARIANT value) {
+			switch (value.vt) {
+			case VT_R4:
+				return std::to_string(value.fltVal);
+			case VT_I2:
+			case VT_I4:
+				return std::to_string(value.intVal);
+			case VT_BSTR:
+				return _com_util::ConvertBSTRToString(value.bstrVal);
+			default:
+				return "";
+			}
+		}
+
+		TEST_METHOD(TestRemoteSyncRead) {
 			OPCServer* srv = OPCEnum::GetOPCServerByName("InSAT", OPCEnum::BrowseOPCServers("192.168.43.250"));
 			srv->Connect();
 			vector<OPCGroup*>* groups = GetGroups(*srv);
