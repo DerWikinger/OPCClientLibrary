@@ -21,7 +21,9 @@ namespace OPCClientLibraryTests
 	TEST_CLASS(OPCClientLibraryTests)
 	{
 	public:
-		
+		//TEST_METHOD_INITIALIZE(Com_Init) {
+		//	com_initialize();
+		//}
 		TEST_METHOD(TestOPCServer)
 		{
 			string name = "Server";
@@ -46,7 +48,7 @@ namespace OPCClientLibraryTests
 			IID IUKNOWN_IID = __uuidof(IUnknown);
 			srv.Guid(&IUKNOWN_IID);
 			Assert::IsTrue(*srv.Guid() == IUKNOWN_IID);
-			
+
 			Assert::AreEqual(DWORD(CLSCTX_LOCAL_SERVER), srv.ClsCTX());
 			DWORD clsCTX = CLSCTX_ALL;
 			srv.ClsCTX(clsCTX);
@@ -59,10 +61,10 @@ namespace OPCClientLibraryTests
 			string hostName = "127.0.0.1";
 			list<OPCServer*>* lst = OPCEnum::BrowseOPCServers(hostName);
 			Assert::IsFalse(lst->size() == 0);
-
-			hostName = "uncorrectAddress";			
 			
-			auto func = [&] () mutable -> list<OPCServer*>* {
+			hostName = "uncorrectAddress";
+
+			auto func = [&]() mutable -> list<OPCServer*>* {
 				return OPCEnum::BrowseOPCServers(hostName);
 			};
 
@@ -71,14 +73,27 @@ namespace OPCClientLibraryTests
 			//Assert::ExpectException<ServerException>(func);
 		}
 
-		
+		void com_initialize() {
+			HRESULT hRes;
+			hRes = CoInitialize(NULL);
+			hRes = CoInitializeSecurity(
+				NULL,
+				-1,
+				NULL,
+				NULL,
+				RPC_C_AUTHN_LEVEL_CONNECT,
+				RPC_C_IMP_LEVEL_IMPERSONATE,
+				NULL,
+				EOAC_NONE,
+				NULL);
+		}
 		TEST_METHOD(TestBrowseRemoteServers)
 		{
-			//return; //skip the test
+			return; //skip the test
 			string hostName = "192.168.43.250";
-			string username = "ETL";
-			string password = "123";
-			COSERVERINFO* sInfo = OPCEnum::GetHostInfo(hostName, username, password);
+			//string username = "ETL";
+			//string password = "123";
+			COSERVERINFO* sInfo = OPCEnum::GetHostInfo(hostName); //Work only anonymous user !!!
 			//list<OPCServer*>* lst = OPCEnum::BrowseOPCServers(hostName, username, password);
 			OPCServer server("InSAT.ModbusOPCServer.DA");
 			GUID guid;
@@ -147,6 +162,55 @@ namespace OPCClientLibraryTests
 			srv->Disconnect();
 		}
 
+		TEST_METHOD(TestGetState)
+		{
+			return;
+		}
+
+		TEST_METHOD(TestRemoteSyncRead) {
+			return; //skip the test
+			OPCServer* srv = OPCEnum::GetOPCServerByName("InSAT", OPCEnum::BrowseOPCServers("192.168.43.250"));
+			srv->Connect();
+			vector<OPCGroup*>* groups = GetGroups(*srv);
+			if (groups->size() > 0) {
+				OPCGroup group = *groups->at(4);
+				ULONG phServerGroup = srv->AddGroup(group);
+				group.AddItems();
+				group.SyncRead();
+				OPCItem* pItem = group.Items().at(0);
+				USHORT qty = pItem->Quality();
+				_FILETIME ftTimeStamp1 = pItem->TimeStamp();
+				Assert::IsTrue(OPC_QUALITY_GOOD == qty);
+				std::cout << ConvertToString(pItem->Value()) << std::endl;
+				LPWSTR strVal = _com_util::ConvertStringToBSTR(ConvertToString(pItem->Value()).c_str());
+				MessageBox(0, strVal, L"Value1", 0);
+				Sleep(5000);
+				group.SyncRead();
+				_FILETIME ftTimeStamp2 = pItem->TimeStamp();
+				std::cout << ConvertToString(pItem->Value()) << std::endl;
+				strVal = _com_util::ConvertStringToBSTR(ConvertToString(pItem->Value()).c_str());
+				MessageBox(0, strVal, L"Value2", 0);
+				Assert::IsFalse(ftTimeStamp1.dwLowDateTime == ftTimeStamp2.dwLowDateTime);
+				group.RemoveItems();
+				srv->RemoveGroup(group);
+			}
+			srv->Disconnect();
+		}
+
+		string ConvertToString(VARIANT value) {
+			switch (value.vt) {
+			case VT_R4:
+				return std::to_string(value.fltVal);
+			case VT_I2:
+			case VT_I4:
+				return std::to_string(value.intVal);
+			case VT_BSTR:
+				return _com_util::ConvertBSTRToString(value.bstrVal);
+			default:
+				return "";
+			}
+		}
+
 		TEST_METHOD(TestSyncRead) {
 			OPCServer* srv = OPCEnum::GetOPCServerByName("InSAT", OPCEnum::BrowseOPCServers("localhost"));
 			srv->Connect();
@@ -177,7 +241,7 @@ namespace OPCClientLibraryTests
 				OPCGroup group = *groups->at(0);
 				ULONG phServerGroup = srv->AddGroup(group, 200);
 				group.Advise();
-				group.AddItems();	
+				group.AddItems();
 				auto wait = [] {
 					Sleep(1000);
 				};
@@ -196,7 +260,7 @@ namespace OPCClientLibraryTests
 					_FILETIME ftTimeStamp2(pItem2.TimeStamp());
 					USHORT qty = pItem2.Quality();
 					float value2(pItem2.Value().fltVal);
-					
+
 					if (qty != OPC_QUALITY_GOOD) MessageBox(0, L"Качество чтения не GOOD", L"Ошибка", 0);
 					if (ftTimeStamp1.dwHighDateTime == ftTimeStamp2.dwHighDateTime &&
 						ftTimeStamp1.dwLowDateTime == ftTimeStamp2.dwLowDateTime) MessageBox(0, L"Метка чтения не поменялась", L"Ошибка", 0);
@@ -258,7 +322,8 @@ namespace OPCClientLibraryTests
 						});
 					if (count > 0) {
 						groups->push_back(new OPCGroup(item->ItemID(), filtred));
-					}				}
+					}
+				}
 				});
 			return groups;
 		}

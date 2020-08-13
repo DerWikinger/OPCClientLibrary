@@ -1,15 +1,17 @@
 #pragma once
 
-#include <list>
+#include <vector>
 #include "OPCItem.h"
 #include "OPCGroup.h"
-#include <vector>
+
 
 namespace OPCClientLibrary {
 
 	using namespace std;
 	using namespace OpcEnumLib;
 	using namespace OPCDA;
+
+	//extern "C" HRESULT BrowseOPCItemIDs(tagOPCBROWSETYPE, LPWSTR, unsigned long, unsigned long, IEnumString**);
 
 	class __declspec(dllexport) OPCServer
 	{
@@ -49,4 +51,3 @@ namespace OPCClientLibrary {
 		const string ToString();
 	};
 }
-

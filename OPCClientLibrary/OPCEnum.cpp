@@ -34,7 +34,7 @@ list<OPCServer*>* OPCEnum::BrowseOPCServers(const string& host, const string& us
 	if (host != "localhost" && host != "127.0.0.1") {
 		clsCTX = CLSCTX_INPROC;
 	}
-
+	hRes = CoInitialize(NULL);
 	hRes = CoCreateInstanceEx(clsid, NULL, clsCTX, pHostInfo, 1, pResults);
 	if (FAILED(hRes)) {
 		//throw new std::exception("Ошибка сервера", hRes);
@@ -82,6 +82,7 @@ list<OPCServer*>* OPCEnum::BrowseOPCServers(const string& host, const string& us
 		((IOPCEnumGUID*)pIOPCEnumGuid)->Next(1, &guid, &iRetSvr); // получаем следующий сервер
 	}
 
+	CoUninitialize();
 	return result;
 }
 
@@ -93,16 +94,22 @@ COSERVERINFO* OPCEnum::GetHostInfo(const string& hostname, const string& usernam
 	if (username != "") {
 		pAuthIdentity = OPCEnum::GetAuthIdentity(username, password, domain);
 
+		BSTR str = _com_util::ConvertStringToBSTR(string("CEE-NAUL\\ETL").c_str());		
+		LPWSTR principalName = LPWSTR(str);
+
 		pAuthInfo = new COAUTHINFO();
 		pAuthInfo->pAuthIdentityData = pAuthIdentity;
-		//pAuthInfo->dwAuthnSvc = RPC_C_AUTHN_WINNT;
 		pAuthInfo->dwAuthnSvc = RPC_C_AUTHN_WINNT;
 		pAuthInfo->pwszServerPrincName = NULL;
+		//pAuthInfo->pwszServerPrincName = principalName;
 		pAuthInfo->dwAuthnLevel = RPC_C_AUTHN_LEVEL_CONNECT;
+		//pAuthInfo->dwAuthnLevel = RPC_C_AUTHN_LEVEL_PKT; // Don`t change
 		//pAuthInfo->dwAuthnLevel = RPC_C_AUTHN_DEFAULT;
 		pAuthInfo->dwImpersonationLevel = RPC_C_IMP_LEVEL_IMPERSONATE;
+		//pAuthInfo->dwCapabilities = EOAC_MUTUAL_AUTH;
 		pAuthInfo->dwCapabilities = EOAC_NONE;
 		pAuthInfo->dwAuthzSvc = RPC_C_AUTHZ_NONE;
+		//pAuthInfo->dwAuthzSvc = NULL;
 	}
 
 	COSERVERINFO* pHostInfo = new COSERVERINFO();
