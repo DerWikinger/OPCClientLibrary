@@ -21,9 +21,6 @@ namespace OPCClientLibraryTests
 	TEST_CLASS(OPCClientLibraryTests)
 	{
 	public:
-		//TEST_METHOD_INITIALIZE(Com_Init) {
-		//	com_initialize();
-		//}
 		TEST_METHOD(TestOPCServer)
 		{
 			string name = "Server";
@@ -91,9 +88,10 @@ namespace OPCClientLibraryTests
 			return; //skip the test
 
 			string hostName = "192.168.43.250";
+			OPCSecurity security(hostName);
 			//string username = "ETL";
 			//string password = "123";
-			COSERVERINFO* sInfo = OPCEnum::GetHostInfo(hostName); //Work only anonymous user !!!
+			COSERVERINFO* sInfo = security.GetServerInfo(); //Work only anonymous user !!!
 			//list<OPCServer*>* lst = OPCEnum::BrowseOPCServers(hostName, username, password);
 			OPCServer server("InSAT.ModbusOPCServer.DA");
 			GUID guid;
@@ -162,53 +160,10 @@ namespace OPCClientLibraryTests
 			srv->Disconnect();
 		}
 
-		TEST_METHOD(TestGetState)
+		TEST_METHOD(TestSecurity)
 		{
-			return;
-		}
-
-		TEST_METHOD(TestRemoteSyncRead) {
-			return; //skip the test
-			OPCServer* srv = OPCEnum::GetOPCServerByName("InSAT", OPCEnum::BrowseOPCServers("192.168.43.250"));
-			srv->Connect();
-			vector<OPCGroup*>* groups = GetGroups(*srv);
-			if (groups->size() > 0) {
-				OPCGroup group = *groups->at(4);
-				ULONG phServerGroup = srv->AddGroup(group);
-				group.AddItems();
-				group.SyncRead();
-				OPCItem* pItem = group.Items().at(0);
-				USHORT qty = pItem->Quality();
-				_FILETIME ftTimeStamp1 = pItem->TimeStamp();
-				Assert::IsTrue(OPC_QUALITY_GOOD == qty);
-				std::cout << ConvertToString(pItem->Value()) << std::endl;
-				LPWSTR strVal = _com_util::ConvertStringToBSTR(ConvertToString(pItem->Value()).c_str());
-				MessageBox(0, strVal, L"Value1", 0);
-				Sleep(5000);
-				group.SyncRead();
-				_FILETIME ftTimeStamp2 = pItem->TimeStamp();
-				std::cout << ConvertToString(pItem->Value()) << std::endl;
-				strVal = _com_util::ConvertStringToBSTR(ConvertToString(pItem->Value()).c_str());
-				MessageBox(0, strVal, L"Value2", 0);
-				Assert::IsFalse(ftTimeStamp1.dwLowDateTime == ftTimeStamp2.dwLowDateTime);
-				group.RemoveItems();
-				srv->RemoveGroup(group);
-			}
-			srv->Disconnect();
-		}
-
-		string ConvertToString(VARIANT value) {
-			switch (value.vt) {
-			case VT_R4:
-				return std::to_string(value.fltVal);
-			case VT_I2:
-			case VT_I4:
-				return std::to_string(value.intVal);
-			case VT_BSTR:
-				return _com_util::ConvertBSTRToString(value.bstrVal);
-			default:
-				return "";
-			}
+			OPCSecurity security;
+			Assert::IsTrue(security.HostName() == "localhost");
 		}
 
 		TEST_METHOD(TestRemoteSyncRead) {
@@ -216,23 +171,25 @@ namespace OPCClientLibraryTests
 			srv->Connect();
 			vector<OPCGroup*>* groups = GetGroups(*srv);
 			if (groups->size() > 0) {
-				OPCGroup group = *groups->at(4);
+				OPCGroup group = *groups->at(3); // Ô-3501
 				ULONG phServerGroup = srv->AddGroup(group);
 				group.AddItems();
 				group.SyncRead();
-				OPCItem* pItem = group.Items().at(0);
+				OPCItem* pItem = group.Items().at(8); // Ib
 				USHORT qty = pItem->Quality();
 				_FILETIME ftTimeStamp1 = pItem->TimeStamp();
 				Assert::IsTrue(OPC_QUALITY_GOOD == qty);
 				std::cout << ConvertToString(pItem->Value()) << std::endl;
 				LPWSTR strVal = _com_util::ConvertStringToBSTR(ConvertToString(pItem->Value()).c_str());
-				MessageBox(0, strVal, L"Value1", 0);
+				Logger::WriteMessage(strVal);
+				//MessageBox(0, strVal, L"Value1", 0);
 				Sleep(5000);
 				group.SyncRead();
 				_FILETIME ftTimeStamp2 = pItem->TimeStamp();
 				std::cout << ConvertToString(pItem->Value()) << std::endl;
 				strVal = _com_util::ConvertStringToBSTR(ConvertToString(pItem->Value()).c_str());
-				MessageBox(0, strVal, L"Value2", 0);
+				Logger::WriteMessage(strVal);
+				//MessageBox(0, strVal, L"Value2", 0);
 				Assert::IsFalse(ftTimeStamp1.dwLowDateTime == ftTimeStamp2.dwLowDateTime);
 				group.RemoveItems();
 				srv->RemoveGroup(group);
@@ -398,18 +355,12 @@ namespace OPCClientLibraryTests
 
 		TEST_METHOD(TestGetAuthIdentity)
 		{
-			COAUTHIDENTITY* pAuthIdentity = OPCEnum::GetAuthIdentity("Brad");
-			Assert::IsNotNull(pAuthIdentity->User);
-			Assert::IsNull(pAuthIdentity->Password);
-			Assert::IsNull(pAuthIdentity->Domain);
-			pAuthIdentity = OPCEnum::GetAuthIdentity("Alex", "123");
-			Assert::IsNotNull(pAuthIdentity->User);
-			Assert::IsNotNull(pAuthIdentity->Password);
-			Assert::IsNull(pAuthIdentity->Domain);
+			string host = "2.2.2.2";
 			string user = "John";
 			string password = "111";
 			string domain = "microsoft.com";
-			pAuthIdentity = OPCEnum::GetAuthIdentity(user, password, domain);
+			OPCSecurity security(host, user, password, domain);
+			COAUTHIDENTITY* pAuthIdentity = security.GetAuthIdentity();
 			Assert::IsNotNull(pAuthIdentity->User);
 			Assert::IsNotNull(pAuthIdentity->Password);
 			Assert::IsNotNull(pAuthIdentity->Domain);

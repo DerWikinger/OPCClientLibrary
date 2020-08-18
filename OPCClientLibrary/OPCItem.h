@@ -1,13 +1,19 @@
 #pragma once
 #include <shared_mutex>
 
+#ifdef OPCCLIENTLIBRARY_EXPORTS
+#define OPCCLIENTLIBRARY_API __declspec(dllexport)
+#else
+#define OPCCLIENTLIBRARY_API __declspec(dllimport)
+#endif
+
 namespace OPCClientLibrary {
 
 	using namespace std;
 
 	static ULONG hClientItems;
 	
-	class __declspec(dllexport) OPCItem
+	class OPCCLIENTLIBRARY_API OPCItem
 	{
 		string _name;
 		string _itemID;

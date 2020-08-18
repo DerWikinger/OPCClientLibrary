@@ -2,9 +2,15 @@
 #include "pch.h"
 #include <exception>
 
+#ifdef OPCCLIENTLIBRARY_EXPORTS
+#define OPCCLIENTLIBRARY_API __declspec(dllexport)
+#else
+#define OPCCLIENTLIBRARY_API __declspec(dllimport)
+#endif
+
 namespace OPCClientLibrary {
 
-	class __declspec(dllexport) ServerException : public std::exception
+	class OPCCLIENTLIBRARY_API ServerException : public std::exception
 	{		
 		HRESULT _hResult;
 		const char* _message = 0;

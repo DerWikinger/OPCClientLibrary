@@ -3,7 +3,13 @@
 #include <vector>
 #include "OPCItem.h"
 #include "OPCGroup.h"
+#include "OPCSecurity.h"
 
+#ifdef OPCCLIENTLIBRARY_EXPORTS
+#define OPCCLIENTLIBRARY_API __declspec(dllexport)
+#else
+#define OPCCLIENTLIBRARY_API __declspec(dllimport)
+#endif
 
 namespace OPCClientLibrary {
 
@@ -11,9 +17,7 @@ namespace OPCClientLibrary {
 	using namespace OpcEnumLib;
 	using namespace OPCDA;
 
-	//extern "C" HRESULT BrowseOPCItemIDs(tagOPCBROWSETYPE, LPWSTR, unsigned long, unsigned long, IEnumString**);
-
-	class __declspec(dllexport) OPCServer
+	class OPCCLIENTLIBRARY_API OPCServer
 	{
 	private:
 		IOPCServer* _server = 0;
@@ -21,6 +25,7 @@ namespace OPCClientLibrary {
 		COSERVERINFO* _serverInfo = NULL;
 		GUID* _guid = 0;
 		DWORD _clsCTX = CLSCTX_LOCAL_SERVER;
+		OPCSecurity _security;
 
 		void itemsChildren(vector<OPCItem*>*, IOPCBrowseServerAddressSpace*, LPWSTR, OPCItem* pParentItem = 0);
 	public:

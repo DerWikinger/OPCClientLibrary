@@ -18,14 +18,9 @@ list<OPCServer*>* OPCEnum::BrowseOPCServers(const string& host, const string& us
 
 	// Идентификатор компонента просмотра списка серверов
 	hRes = CLSIDFromProgID(L"OPC.ServerList", &clsid);
-	//hRes = CLSIDFromString(L"{B28EEDB1-AC6F-11D1-84D5-00608CB8A7E9}", &clsid);
-	//"OPC.ServerList"
-	hRes = CLSIDFromString(L"{13486D51-4821-11D2-A494-3CB306C10000}", &clsid);
 
-	COSERVERINFO* pHostInfo = GetHostInfo(host, username, password, domain);
-
-	//CLSID opcEnumID;
-	//hRes = CLSIDFromString(L"{13486D50-4821-11D2-A494-3CB306C10000}", &opcEnumID);
+	OPCSecurity security(host, username, password, domain);
+	COSERVERINFO* pHostInfo = security.GetServerInfo();
 
 	MULTI_QI* pResults = new MULTI_QI();
 	pResults->pIID = &IID_IOPCServerList;
@@ -84,87 +79,6 @@ list<OPCServer*>* OPCEnum::BrowseOPCServers(const string& host, const string& us
 
 	CoUninitialize();
 	return result;
-}
-
-COSERVERINFO* OPCEnum::GetHostInfo(const string& hostname, const string& username, const string& password,
-	const string& domain)
-{
-	COAUTHINFO* pAuthInfo = NULL;
-	COAUTHIDENTITY* pAuthIdentity = NULL;
-	if (username != "") {
-		pAuthIdentity = OPCEnum::GetAuthIdentity(username, password, domain);
-
-		BSTR str = _com_util::ConvertStringToBSTR(string("CEE-NAUL\\ETL").c_str());		
-		LPWSTR principalName = LPWSTR(str);
-
-		pAuthInfo = new COAUTHINFO();
-		pAuthInfo->pAuthIdentityData = pAuthIdentity;
-		pAuthInfo->dwAuthnSvc = RPC_C_AUTHN_WINNT;
-		pAuthInfo->pwszServerPrincName = NULL;
-		//pAuthInfo->pwszServerPrincName = principalName;
-		pAuthInfo->dwAuthnLevel = RPC_C_AUTHN_LEVEL_CONNECT;
-		//pAuthInfo->dwAuthnLevel = RPC_C_AUTHN_LEVEL_PKT; // Don`t change
-		//pAuthInfo->dwAuthnLevel = RPC_C_AUTHN_DEFAULT;
-		pAuthInfo->dwImpersonationLevel = RPC_C_IMP_LEVEL_IMPERSONATE;
-		//pAuthInfo->dwCapabilities = EOAC_MUTUAL_AUTH;
-		pAuthInfo->dwCapabilities = EOAC_NONE;
-		pAuthInfo->dwAuthzSvc = RPC_C_AUTHZ_NONE;
-		//pAuthInfo->dwAuthzSvc = NULL;
-	}
-
-	COSERVERINFO* pHostInfo = new COSERVERINFO();
-	pHostInfo->dwReserved1 = 0;
-	pHostInfo->dwReserved2 = 0;
-	BSTR name = _com_util::ConvertStringToBSTR(hostname.c_str());
-	pHostInfo->pwszName = name;
-	pHostInfo->pAuthInfo = pAuthInfo;
-
-	return pHostInfo;
-}
-
-COAUTHIDENTITY* OPCEnum::GetAuthIdentity(const string& username, const string& password, const string& domain) {
-
-	COAUTHIDENTITY* pResult = new COAUTHIDENTITY();
-	pResult->Flags = SEC_WINNT_AUTH_IDENTITY_UNICODE;
-	//pResult->Flags = SEC_WINNT_AUTH_IDENTITY_ANSI;
-
-	ULONG usernameLength = username.length();
-	USHORT* pUsername = 0;
-	if (usernameLength > 0) {
-		pUsername = new USHORT[usernameLength];
-		for (int i = 0; i < usernameLength; i++)
-		{
-			pUsername[i] = username.at(i);
-		}
-		pResult->User = pUsername;
-		pResult->UserLength = usernameLength;
-	}
-
-	ULONG passwordLength = password.length();
-	USHORT* pPassword = 0;
-	if (passwordLength > 0) {
-		pPassword = new USHORT[passwordLength];
-		for (int i = 0; i < passwordLength; i++)
-		{
-			pPassword[i] = password.at(i);
-		}
-		pResult->Password = pPassword;
-		pResult->PasswordLength = passwordLength;
-	}
-
-	ULONG domainLength = domain.length();
-	USHORT* pDomain = 0;
-	if (domainLength > 0) {
-		pDomain = new USHORT[domainLength];
-		for (int i = 0; i < domainLength; i++)
-		{
-			pDomain[i] = domain.at(i);
-		}
-		pResult->Domain = pDomain;
-		pResult->DomainLength = domainLength;
-	}
-
-	return pResult;
 }
 
 OPCServer* OPCEnum::GetOPCServerByName(const string& name, const list<OPCServer*>* lst) {

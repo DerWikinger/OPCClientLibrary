@@ -12,11 +12,11 @@ namespace OPCClientLibrary {
 	static DWORD static_dwTransactionID = 0;
 	static DWORD static_hClientGroup = 0;
 
-	class __declspec(dllexport) OPCGroup
+	class OPCCLIENTLIBRARY_API OPCGroup
 	{
 		vector<OPCItem*> _items;
 		string _name = "Nonamed OPCGroup";
-		IOPCItemMgt* _pItemMgt;
+		IOPCItemMgt* _pItemMgt = NULL;
 		IConnectionPoint* _pDataCallback;
 		DWORD _dwCookie;
 		DWORD _dwTransactionID;

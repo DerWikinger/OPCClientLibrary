@@ -6,7 +6,7 @@ namespace OPCClientLibrary {
 
 	using namespace OPCDA;
 
-	class __declspec(dllexport) DataCallback :
+	class OPCCLIENTLIBRARY_API DataCallback :
 		public IOPCDataCallback
 	{
 	private:
