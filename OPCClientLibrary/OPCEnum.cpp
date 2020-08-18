@@ -19,8 +19,8 @@ list<OPCServer*>* OPCEnum::BrowseOPCServers(const string& host, const string& us
 	// Идентификатор компонента просмотра списка серверов
 	hRes = CLSIDFromProgID(L"OPC.ServerList", &clsid);
 
-	OPCSecurity security(host, username, password, domain);
-	COSERVERINFO* pHostInfo = security.GetServerInfo();
+	OPCSecurity* pSecurity = new OPCSecurity(host, username, password, domain);
+	COSERVERINFO* pHostInfo = pSecurity->GetServerInfo();
 
 	MULTI_QI* pResults = new MULTI_QI();
 	pResults->pIID = &IID_IOPCServerList;
@@ -71,7 +71,7 @@ list<OPCServer*>* OPCEnum::BrowseOPCServers(const string& host, const string& us
 		//создаем область памяти, чтобы хранить идентификатор в привязке к строке списка
 		memcpy(pGuid, &guid, sizeof(guid));
 		server->Guid(pGuid);
-		server->ServerInfo(pHostInfo);
+		server->Security(pSecurity);
 		server->ClsCTX(clsCTX);
 		//связываем элемент списка и указатель на идентификатор
 		((IOPCEnumGUID*)pIOPCEnumGuid)->Next(1, &guid, &iRetSvr); // получаем следующий сервер

@@ -68,43 +68,14 @@ namespace OPCClientLibraryTests
 			Assert::ExpectException<HRESULT>(func);
 			//Assert::ExpectException<ServerException>(func);
 		}
-
-		void com_initialize() {
-			HRESULT hRes;
-			hRes = CoInitialize(NULL);
-			hRes = CoInitializeSecurity(
-				NULL,
-				-1,
-				NULL,
-				NULL,
-				RPC_C_AUTHN_LEVEL_CONNECT,
-				RPC_C_IMP_LEVEL_IMPERSONATE,
-				NULL,
-				EOAC_NONE,
-				NULL);
-		}
 		TEST_METHOD(TestBrowseRemoteServers)
 		{
-			return; //skip the test
-
+			//return; //skip the test
 			string hostName = "192.168.43.250";
 			OPCSecurity security(hostName);
-			//string username = "ETL";
-			//string password = "123";
 			COSERVERINFO* sInfo = security.GetServerInfo(); //Work only anonymous user !!!
-			//list<OPCServer*>* lst = OPCEnum::BrowseOPCServers(hostName, username, password);
-			OPCServer server("InSAT.ModbusOPCServer.DA");
-			GUID guid;
-			// InSAT.ModbusOPCServer.DA
-			CLSIDFromString(L"{F5EB9AFF-96EA-403F-B129-65235F8BB8B8}", &guid);
-			server.Guid(&guid);
-			server.ClsCTX(CLSCTX_INPROC);
-			server.ServerInfo(sInfo);
-			server.Connect();
-			vector<OPCItem*>* l = server.GetItems();
-			server.Disconnect();
-			//list<OPCServer*>* lst = OPCEnum::BrowseOPCServers(hostName, username, password);
-			//Assert::IsFalse(lst->size() == 0);
+			list<OPCServer*>* lst = OPCEnum::BrowseOPCServers(hostName);
+			Assert::IsFalse(lst->size() == 0);
 		}
 
 		TEST_METHOD(TestServerItems)
@@ -175,7 +146,7 @@ namespace OPCClientLibraryTests
 				ULONG phServerGroup = srv->AddGroup(group);
 				group.AddItems();
 				group.SyncRead();
-				OPCItem* pItem = group.Items().at(8); // Ib
+				OPCItem* pItem = group.Items().at(6); // Ia
 				USHORT qty = pItem->Quality();
 				_FILETIME ftTimeStamp1 = pItem->TimeStamp();
 				Assert::IsTrue(OPC_QUALITY_GOOD == qty);

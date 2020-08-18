@@ -29,6 +29,7 @@ namespace OPCClientLibrary {
 		DWORD _capabilities;
 
 		COAUTHINFO* pAuthInfo = NULL;
+		SECURITY_DESCRIPTOR* pSecDescr = NULL;
 
 	public:
 		explicit OPCSecurity(const string &hostname = "localhost", const string &username = "", 
@@ -52,6 +53,7 @@ namespace OPCClientLibrary {
 			return pAuthInfo;
 		}
 		COSERVERINFO* GetServerInfo();
+		HRESULT InitializeSecurity();
 		
 		const string HostName() const {
 			return _hostname;
@@ -109,13 +111,13 @@ namespace OPCClientLibrary {
 			return _authnSvc = value;
 		}
 
-		//const DWORD AuthzLevel() const {
-		//	return _authzLevel;
-		//}
+		const SECURITY_DESCRIPTOR* SecurityDescriptor() const {
+			return pSecDescr;
+		}
 
-		//const DWORD AuthzLevel(DWORD value) {
-		//	return _authzLevel = value;
-		//}
+		const SECURITY_DESCRIPTOR* SecurityDescriptor(SECURITY_DESCRIPTOR *value) {
+			return pSecDescr = value;
+		}
 
 		const DWORD AuthzSvc() const {
 			return _authzSvc;

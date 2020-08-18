@@ -22,14 +22,15 @@ namespace OPCClientLibrary {
 	private:
 		IOPCServer* _server = 0;
 		string _name = "Nonamed OPCServer";
-		COSERVERINFO* _serverInfo = NULL;
 		GUID* _guid = 0;
 		DWORD _clsCTX = CLSCTX_LOCAL_SERVER;
-		OPCSecurity _security;
+		OPCSecurity* _security;
 
 		void itemsChildren(vector<OPCItem*>*, IOPCBrowseServerAddressSpace*, LPWSTR, OPCItem* pParentItem = 0);
 	public:
-		OPCServer() {}
+		OPCServer() {
+			_security = new OPCSecurity();
+		}
 		explicit OPCServer(const string &name) : _name(name) {}
 		
 		const string Name();
@@ -38,8 +39,12 @@ namespace OPCClientLibrary {
 		const GUID* Guid(GUID*);
 		const DWORD ClsCTX();
 		const DWORD ClsCTX(DWORD);
-		const COSERVERINFO* ServerInfo();
-		const COSERVERINFO* ServerInfo(COSERVERINFO*);
+		OPCSecurity* Security() const {
+			return _security;
+		};
+		OPCSecurity* Security(OPCSecurity* value) {
+			return _security = value;
+		}
 		virtual ~OPCServer() {
 			Disconnect();
 		}

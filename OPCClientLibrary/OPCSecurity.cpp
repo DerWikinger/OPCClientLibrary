@@ -76,3 +76,75 @@ COAUTHIDENTITY* OPCSecurity::GetAuthIdentity() {
 
 	return pAuthIdentity;
 }
+
+HRESULT OPCSecurity::InitializeSecurity() {
+	
+	SOLE_AUTHENTICATION_INFO* authInfo = new SOLE_AUTHENTICATION_INFO();
+	SecureZeroMemory(authInfo, sizeof(SOLE_AUTHENTICATION_INFO));
+
+	authInfo->dwAuthnSvc = RPC_C_AUTHN_WINNT;
+	authInfo->dwAuthzSvc = RPC_C_AUTHZ_NONE;
+	authInfo->pAuthInfo = pAuthInfo;
+
+	SOLE_AUTHENTICATION_LIST* authInfoList = new SOLE_AUTHENTICATION_LIST();
+	authInfoList->cAuthInfo = 1;
+	authInfoList->aAuthInfo = authInfo;
+
+	HRESULT hRes;
+
+	hRes = CoInitializeSecurity(
+		pSecDescr,
+		-1,
+		NULL,
+		NULL,
+		_authnLevel,
+		_impersonateLevel,
+		authInfoList,
+		_capabilities,
+		NULL);
+
+	if (FAILED(hRes)) {
+		throw hRes;
+	}
+
+	return hRes;
+}
+
+//hRes = CoSetProxyBlanket(
+//	_server,
+//	RPC_C_AUTHN_GSS_NEGOTIATE,
+//	RPC_C_AUTHZ_NONE,
+//	NULL,
+//	//_serverInfo->pAuthInfo->pwszServerPrincName,
+//	RPC_C_AUTHN_LEVEL_CONNECT,
+//	RPC_C_IMP_LEVEL_DELEGATE,
+//	_serverInfo->pAuthInfo->pAuthIdentityData,
+//	EOAC_MUTUAL_AUTH
+//	);
+//DWORD* pwAuthnSvc = new DWORD();
+//DWORD* pwAuthzSvc = new DWORD();
+//LPOLESTR* princName = new LPOLESTR();
+//DWORD* pAuthnLvl = new DWORD();
+//DWORD* pImpLvl = new DWORD();
+//RPC_AUTH_IDENTITY_HANDLE* pAuthHandle = new RPC_AUTH_IDENTITY_HANDLE();
+//DWORD* pCabability = new DWORD();
+
+// RPC_C_AUTHN_WINNT = 10
+
+//hRes = CoQueryProxyBlanket(
+//	_server,
+//	pwAuthnSvc, // RPC_C_AUTHN_GSS_NEGOTIATE = 9
+//	pwAuthzSvc, // RPC_C_AUTHZ_NONE = 0
+//	//NULL,
+//	princName, // CEE-NAUL\\ETL
+//	pAuthnLvl, // RPC_C_AUTHN_LEVEL_PKT_INTEGRITY = 5
+//	pImpLvl, // RPC_C_IMP_LEVEL_IDENTIFY = 2
+//	pAuthHandle,
+//	pCabability // EOAC_MUTUAL_AUTH = 1
+//);
+//IClientSecurity * pIClientSecurity;
+//hRes = _server->QueryInterface(IID_IClientSecurity, (void**)&pIClientSecurity);
+//if (FAILED(hRes))
+//{
+//	throw hRes;
+//}

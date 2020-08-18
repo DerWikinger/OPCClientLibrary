@@ -22,112 +22,22 @@ void OPCServer::Connect() {
 	MULTI_QI* pResults = new MULTI_QI();
 	pResults->pIID = &IID_IOPCSERVER;
 
-	if (_serverInfo->pAuthInfo != NULL) {
-		SOLE_AUTHENTICATION_INFO* authInfo = new SOLE_AUTHENTICATION_INFO();
-		SecureZeroMemory(authInfo, sizeof(SOLE_AUTHENTICATION_INFO));
+	if (_security->GetAuthInfo() != NULL) {
 
-		authInfo->dwAuthnSvc = RPC_C_AUTHN_WINNT;
-		authInfo->dwAuthzSvc = RPC_C_AUTHZ_NONE;
-		authInfo->pAuthInfo = _serverInfo->pAuthInfo;
-
-		SOLE_AUTHENTICATION_LIST* authInfoList = new SOLE_AUTHENTICATION_LIST();
-		authInfoList->cAuthInfo = 1;
-		authInfoList->aAuthInfo = authInfo;
-
-		//hRes = CoInitializeSecurity(
-		//	&_guid,
-		//	-1,
-		//	NULL,
-		//	NULL,
-		//	RPC_C_AUTHN_LEVEL_CONNECT,
-		//	RPC_C_IMP_LEVEL_IMPERSONATE,
-		//	authInfoList,
-		//	EOAC_APPID,
-		//	NULL);
-
-		//HANDLE token = GetCurrentThreadToken();
-		//PSECURITY_DESCRIPTOR sd = new PSECURITY_DESCRIPTOR();
-		//ULONG pConToken;
-		//hRes = CoGetContextToken(&pConToken);
-
-		//InitializeSecurityDescriptor(&sd, SECURITY_DESCRIPTOR_REVISION);
-
-		//hRes = CoInitializeSecurity(
-		//	sd,
-		//	-1,
-		//	NULL,
-		//	NULL,
-		//	RPC_C_AUTHN_LEVEL_PKT,
-		//	RPC_C_IMP_LEVEL_IMPERSONATE,
-		//	authInfoList,
-		//	EOAC_NONE,
-		//	NULL);
-
-
-		//hRes = CoInitializeSecurity(
-		//	NULL,
-		//	-1,
-		//	NULL,
-		//	NULL,
-		//	RPC_C_AUTHN_LEVEL_NONE,
-		//	RPC_C_IMP_LEVEL_IDENTIFY,
-		//	NULL,
-		//	EOAC_NONE,
-		//	NULL);
-
-		//if (FAILED(hRes))
-		//{
-		//	throw hRes;
-		//}
-		
+		hRes = _security->InitializeSecurity();
+		if(FAILED(hRes))
+		{
+			throw hRes;
+		}		
 	}
 
-	hRes = CoCreateInstanceEx(*_guid, NULL, _clsCTX, _serverInfo, 1, pResults);
+	hRes = CoCreateInstanceEx(*_guid, NULL, _clsCTX, _security->GetServerInfo(), 1, pResults);
 	if (FAILED(hRes))
 	{
 		throw hRes;
 	}	
 
-	//RPC_AUTH_IDENTITY_HANDLE pAuthHandle = 
 	_server = (IOPCServer*)pResults->pItf;
-	//hRes = CoSetProxyBlanket(
-	//	_server,
-	//	RPC_C_AUTHN_GSS_NEGOTIATE,
-	//	RPC_C_AUTHZ_NONE,
-	//	NULL,
-	//	//_serverInfo->pAuthInfo->pwszServerPrincName,
-	//	RPC_C_AUTHN_LEVEL_CONNECT,
-	//	RPC_C_IMP_LEVEL_DELEGATE,
-	//	_serverInfo->pAuthInfo->pAuthIdentityData,
-	//	EOAC_MUTUAL_AUTH
-	//	);
-	//DWORD* pwAuthnSvc = new DWORD();
-	//DWORD* pwAuthzSvc = new DWORD();
-	//LPOLESTR* princName = new LPOLESTR();
-	//DWORD* pAuthnLvl = new DWORD();
-	//DWORD* pImpLvl = new DWORD();
-	//RPC_AUTH_IDENTITY_HANDLE* pAuthHandle = new RPC_AUTH_IDENTITY_HANDLE();
-	//DWORD* pCabability = new DWORD();
-
-	// RPC_C_AUTHN_WINNT = 10
-
-	//hRes = CoQueryProxyBlanket(
-	//	_server,
-	//	pwAuthnSvc, // RPC_C_AUTHN_GSS_NEGOTIATE = 9
-	//	pwAuthzSvc, // RPC_C_AUTHZ_NONE = 0
-	//	//NULL,
-	//	princName, // CEE-NAUL\\ETL
-	//	pAuthnLvl, // RPC_C_AUTHN_LEVEL_PKT_INTEGRITY = 5
-	//	pImpLvl, // RPC_C_IMP_LEVEL_IDENTIFY = 2
-	//	pAuthHandle,
-	//	pCabability // EOAC_MUTUAL_AUTH = 1
-	//);
-	//IClientSecurity * pIClientSecurity;
-	//hRes = _server->QueryInterface(IID_IClientSecurity, (void**)&pIClientSecurity);
-	if (FAILED(hRes))
-	{
-		throw hRes;
-	}
 }
 
 void OPCServer::Disconnect() {
@@ -135,6 +45,7 @@ void OPCServer::Disconnect() {
 		_server->Release();
 		_server = NULL;
 	}	
+	_security = NULL;
 	CoUninitialize();
 }
 
@@ -145,16 +56,6 @@ const string OPCServer::Name() {
 const string OPCServer::Name(const string &value) {
 	return _name = value;
 }
-
-
-const COSERVERINFO* OPCServer::ServerInfo() { 
-	return _serverInfo; 
-};
-
-const COSERVERINFO* OPCServer::ServerInfo(COSERVERINFO* value) {
-	return _serverInfo = value;
-};
-
 
 const GUID* OPCServer::Guid() {
 	return _guid;
@@ -358,7 +259,6 @@ const VARENUM OPCServer::GetItemDataType(const string& itemID) {
 
 	return result;
 }
-
 
 const string OPCServer::ToString() {
 	//string res = "OPCServerObject";
