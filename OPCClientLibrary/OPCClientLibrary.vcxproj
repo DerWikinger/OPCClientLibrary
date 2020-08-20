@@ -181,6 +181,9 @@
     </ClCompile>
     <ClCompile Include="ServerException.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="..\Debug\opc-server.cfg" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

@@ -9,6 +9,8 @@
 #include "ServerException.h"
 #include <thread>
 #include <chrono>
+#include <regex>
+
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 using namespace std;
@@ -20,7 +22,112 @@ namespace OPCClientLibraryTests
 {
 	TEST_CLASS(OPCClientLibraryTests)
 	{
-	public:
+	private:
+		string _hostname;
+		string _username;
+		string _password;
+		string _domain;
+		string _serverName;
+	public:		
+		TEST_METHOD_INITIALIZE(init) {
+
+			FILE* f = new FILE();
+			errno_t err = fopen_s(&f, "opc-server.cfg", "r");
+
+			char* bufPos = (char*)malloc(1024);
+			char* bufStart = bufPos;
+			int length = 0;
+			if (!err) {
+				while (!feof(f)) {
+					fread_s(bufPos++, 1, 1, 1, f);
+					length++;
+				}
+				fclose(f);
+			}
+			*(--bufPos) = '\n';
+
+			vector<string> rows;
+			string row = "";
+			bufPos = bufStart;
+			int count = length;
+			while (count--) {
+				char c = *bufPos++;
+				row.append(1, c);
+				if (c == '\n') {
+					if (row.size() > 1) rows.push_back(row);
+					row = "";
+				}
+			}
+
+			auto find = [&](string row) mutable {
+				string value = "";
+
+				regex reg("^#"); // Comment
+				bool match = regex_search(row.begin(), row.end(), reg);
+				if (match) return;
+
+				reg.assign("^hostname:");
+				match = regex_search(row.begin(), row.end(), reg);
+				if (match) {
+					int index = row.find_first_of(':');
+					if (~index) {
+						value = row.substr(index + 1);
+						value = trim(value);
+						_hostname = value;
+					}
+				}
+
+				reg.assign("^username:");
+				match = regex_search(row.begin(), row.end(), reg);
+				if (match) {
+					int index = row.find_first_of(':');
+					if (~index) {
+						value = row.substr(index + 1);
+						value = trim(value);
+						_username = value;
+					}
+				}
+
+				reg.assign("^password:");
+				match = regex_search(row.begin(), row.end(), reg);
+				if (match) {
+					int index = row.find_first_of(':');
+					if (~index) {
+						value = row.substr(index + 1);
+						value = trim(value);
+						_password = value;
+					}
+				}
+
+				reg.assign("^server-name:");
+				match = regex_search(row.begin(), row.end(), reg);
+				if (match) {
+					int index = row.find_first_of(':');
+					if (~index) {
+						value = row.substr(index + 1);
+						value = trim(value);
+						_serverName = value;
+					}
+				}
+			};
+
+			for_each(rows.begin(), rows.end(), find);
+			free(bufPos = bufStart);
+		}
+
+		string trim(string str) {
+			string value = str;
+			regex reg("^\\s+");
+			value = regex_replace(value, reg, ""); // ltrim
+			reg.assign("\\s+$");
+			value = regex_replace(value, reg, ""); // rtrim
+			reg.assign("^[\",']");
+			value = regex_replace(value, reg, "");
+			reg.assign("[\",']$");
+			value = regex_replace(value, reg, "");
+			return value;
+		}
+
 		TEST_METHOD(TestOPCServer)
 		{
 			string name = "Server";
@@ -70,18 +177,17 @@ namespace OPCClientLibraryTests
 		}
 		TEST_METHOD(TestBrowseRemoteServers)
 		{
-			//return; //skip the test
-			string hostName = "192.168.43.250";
-			OPCSecurity security(hostName);
+			return; //skip the test
+			OPCSecurity security(_hostname);
 			COSERVERINFO* sInfo = security.GetServerInfo(); //Work only anonymous user !!!
-			list<OPCServer*>* lst = OPCEnum::BrowseOPCServers(hostName);
+			list<OPCServer*>* lst = OPCEnum::BrowseOPCServers(_hostname);
 			Assert::IsFalse(lst->size() == 0);
 		}
 
 		TEST_METHOD(TestServerItems)
 		{
 			Sleep(3000);
-			OPCServer* srv = OPCEnum::GetOPCServerByName("InSAT", OPCEnum::BrowseOPCServers("localhost"));
+			OPCServer* srv = OPCEnum::GetOPCServerByName(_serverName, OPCEnum::BrowseOPCServers("localhost"));
 			srv->Connect();
 			vector<OPCItem*>* vc = srv->GetItems();
 			Assert::IsTrue(vc->size() > 0);
@@ -115,7 +221,7 @@ namespace OPCClientLibraryTests
 
 		TEST_METHOD(TestAddGroup)
 		{
-			OPCServer* srv = OPCEnum::GetOPCServerByName("InSAT", OPCEnum::BrowseOPCServers("localhost"));
+			OPCServer* srv = OPCEnum::GetOPCServerByName(_serverName, OPCEnum::BrowseOPCServers("localhost"));
 			srv->Connect();
 			vector<OPCGroup*>* groups = GetGroups(*srv);
 
@@ -138,7 +244,8 @@ namespace OPCClientLibraryTests
 		}
 
 		TEST_METHOD(TestRemoteSyncRead) {
-			OPCServer* srv = OPCEnum::GetOPCServerByName("InSAT", OPCEnum::BrowseOPCServers("192.168.43.250"));
+			return; // skip the test
+			OPCServer* srv = OPCEnum::GetOPCServerByName(_serverName, OPCEnum::BrowseOPCServers(_hostname));
 			srv->Connect();
 			vector<OPCGroup*>* groups = GetGroups(*srv);
 			if (groups->size() > 0) {
@@ -183,7 +290,7 @@ namespace OPCClientLibraryTests
 		}
 
 		TEST_METHOD(TestSyncRead) {
-			OPCServer* srv = OPCEnum::GetOPCServerByName("InSAT", OPCEnum::BrowseOPCServers("localhost"));
+			OPCServer* srv = OPCEnum::GetOPCServerByName(_serverName, OPCEnum::BrowseOPCServers("localhost"));
 			srv->Connect();
 			vector<OPCGroup*>* groups = GetGroups(*srv);
 			if (groups->size() > 0) {
@@ -205,7 +312,7 @@ namespace OPCClientLibraryTests
 		}
 
 		TEST_METHOD(TestAsyncRead) {
-			OPCServer* srv = OPCEnum::GetOPCServerByName("InSAT", OPCEnum::BrowseOPCServers("localhost"));
+			OPCServer* srv = OPCEnum::GetOPCServerByName(_serverName, OPCEnum::BrowseOPCServers("localhost"));
 			srv->Connect();
 			vector<OPCGroup*>* groups = GetGroups(*srv);
 			if (groups->size() > 0) {
@@ -232,9 +339,9 @@ namespace OPCClientLibraryTests
 					USHORT qty = pItem2.Quality();
 					float value2(pItem2.Value().fltVal);
 
-					if (qty != OPC_QUALITY_GOOD) MessageBox(0, L"Качество чтения не GOOD", L"Ошибка", 0);
+					if (qty != OPC_QUALITY_GOOD) Logger::WriteMessage(L"Качество чтения не GOOD");
 					if (ftTimeStamp1.dwHighDateTime == ftTimeStamp2.dwHighDateTime &&
-						ftTimeStamp1.dwLowDateTime == ftTimeStamp2.dwLowDateTime) MessageBox(0, L"Метка чтения не поменялась", L"Ошибка", 0);
+						ftTimeStamp1.dwLowDateTime == ftTimeStamp2.dwLowDateTime) Logger::WriteMessage(L"Метка чтения не поменялась");
 				}
 				group.RemoveItems();
 				group.Unadvise();
