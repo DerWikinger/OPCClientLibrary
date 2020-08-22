@@ -155,6 +155,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Converter.h" />
     <ClInclude Include="DataCallback.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="OPCEnum.h" />
@@ -166,6 +167,7 @@
     <ClInclude Include="ServerException.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Converter.cpp" />
     <ClCompile Include="DataCallback.cpp" />
     <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="OPCEnum.cpp" />

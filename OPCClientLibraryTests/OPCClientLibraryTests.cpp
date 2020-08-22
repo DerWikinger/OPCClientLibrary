@@ -4,6 +4,8 @@
 #include "OPCEnum.h"
 #include "OPCGroup.h"
 #include "OPCItem.h"
+#include "Converter.h"
+
 #include <list>
 #include <algorithm>
 #include "ServerException.h"
@@ -28,6 +30,8 @@ namespace OPCClientLibraryTests
 		string _password;
 		string _domain;
 		string _serverName;
+		tagEOLE_AUTHENTICATION_CAPABILITIES _capabilities;
+
 	public:		
 		TEST_METHOD_INITIALIZE(init) {
 
@@ -96,6 +100,7 @@ namespace OPCClientLibraryTests
 						value = row.substr(index + 1);
 						value = trim(value);
 						_password = value;
+
 					}
 				}
 
@@ -107,6 +112,17 @@ namespace OPCClientLibraryTests
 						value = row.substr(index + 1);
 						value = trim(value);
 						_serverName = value;
+					}
+				}
+
+				reg.assign("^capabilities:");
+				match = regex_search(row.begin(), row.end(), reg);
+				if (match) {
+					int index = row.find_first_of(':');
+					if (~index) {
+						value = row.substr(index + 1);
+						value = trim(value);
+						_capabilities = tagEOLE_AUTHENTICATION_CAPABILITIES(atoi(value.c_str()));
 					}
 				}
 			};
@@ -257,15 +273,15 @@ namespace OPCClientLibraryTests
 				USHORT qty = pItem->Quality();
 				_FILETIME ftTimeStamp1 = pItem->TimeStamp();
 				Assert::IsTrue(OPC_QUALITY_GOOD == qty);
-				std::cout << ConvertToString(pItem->Value()) << std::endl;
-				LPWSTR strVal = _com_util::ConvertStringToBSTR(ConvertToString(pItem->Value()).c_str());
+				std::cout << Converter::ConvertToString(pItem->Value()) << std::endl;
+				LPWSTR strVal = _com_util::ConvertStringToBSTR(Converter::ConvertToString(pItem->Value()).c_str());
 				Logger::WriteMessage(strVal);
 				//MessageBox(0, strVal, L"Value1", 0);
 				Sleep(5000);
 				group.SyncRead();
 				_FILETIME ftTimeStamp2 = pItem->TimeStamp();
-				std::cout << ConvertToString(pItem->Value()) << std::endl;
-				strVal = _com_util::ConvertStringToBSTR(ConvertToString(pItem->Value()).c_str());
+				std::cout << Converter::ConvertToString(pItem->Value()) << std::endl;
+				strVal = _com_util::ConvertStringToBSTR(Converter::ConvertToString(pItem->Value()).c_str());
 				Logger::WriteMessage(strVal);
 				//MessageBox(0, strVal, L"Value2", 0);
 				Assert::IsFalse(ftTimeStamp1.dwLowDateTime == ftTimeStamp2.dwLowDateTime);
@@ -273,20 +289,6 @@ namespace OPCClientLibraryTests
 				srv->RemoveGroup(group);
 			}
 			srv->Disconnect();
-		}
-
-		string ConvertToString(VARIANT value) {
-			switch (value.vt) {
-			case VT_R4:
-				return std::to_string(value.fltVal);
-			case VT_I2:
-			case VT_I4:
-				return std::to_string(value.intVal);
-			case VT_BSTR:
-				return _com_util::ConvertBSTRToString(value.bstrVal);
-			default:
-				return "";
-			}
 		}
 
 		TEST_METHOD(TestSyncRead) {
@@ -349,38 +351,6 @@ namespace OPCClientLibraryTests
 			}
 			srv->Disconnect();
 
-		}
-
-		LPWSTR GetQuality(USHORT qty) {
-			switch (qty)
-			{
-			case 0x00: return L"Bad";
-			case 0x04: return L"Config Error";
-			case 0x08: return L"Not Connected";
-			case 0x0C: return L"Device Failure";
-			case 0x10: return L"Sensor Failure";
-			case 0x14: return L"Last Known";
-			case 0x18: return L"Comm Failure";
-			case 0x1C: return L"Out of Service";
-			case 0x20: return L"Initializing";
-			case 0x40: return L"Uncertain";
-			case 0x44: return L"Last Usable";
-			case 0x50: return L"Sensor Calibration";
-			case 0x54: return L"EGU Exceeded";
-			case 0x58: return L"Sub Normal";
-			case 0xC0: return L"Good";
-			case 0xD8: return L"Local Override"; default: return L"Unknown";
-			}
-		}
-
-		LPWSTR GetTime(_FILETIME ft) {
-			DWORD hDT = ft.dwHighDateTime;
-			DWORD lDT = ft.dwLowDateTime;
-			string result = std::to_string(hDT) + " : " + std::to_string(lDT);
-			BSTR bstr = _com_util::ConvertStringToBSTR(result.c_str());
-			return bstr;
-			//COleDateTime dt = COleDateTime(ft);
-			//return dt.Format(L"%Y-%m-%d %H:%M:%S");
 		}
 
 		vector<OPCGroup*>* GetGroups(OPCServer& server) {
@@ -451,6 +421,60 @@ namespace OPCClientLibraryTests
 			Assert::IsTrue(user == string(wUsername.begin(), wUsername.end()));
 			Assert::IsTrue(password == string(wPassword.begin(), wPassword.end()));
 			Assert::IsTrue(domain == string(wDomain.begin(), wDomain.end()));
+		}
+
+		TEST_METHOD(TestConverter) {
+			VARIANT fVar;
+			VariantInit(&fVar);
+			FLOAT fVal = 0.5;
+			fVar.fltVal = fVal;
+			fVar.vt = VT_R4;
+			string strVal = Converter::ConvertToString(fVar);
+			Assert::AreEqual(strVal.c_str(), "0.5");
+
+			VARIANT dVar;
+			VariantInit(&dVar);
+			DOUBLE dVal = 0.555;
+			dVar.dblVal = dVal;
+			dVar.vt = VT_R8;
+			strVal = Converter::ConvertToString(dVar);
+			Assert::AreEqual(strVal.c_str(), "0.555");
+			
+			VARIANT sVar;
+			VariantInit(&sVar);
+			sVar.vt = VT_I2;
+			sVar.iVal = 756;
+			strVal = Converter::ConvertToString(sVar);
+			Assert::AreEqual(strVal.c_str(), "756");
+			
+			VARIANT iVar;
+			VariantInit(&iVar);
+			iVar.vt = VT_I4;
+			iVar.intVal = 756456;
+			strVal = Converter::ConvertToString(iVar);
+			Assert::AreEqual(strVal.c_str(), "756456");
+
+			VARIANT bstrVar;
+			VariantInit(&bstrVar);
+			bstrVar.vt = VT_BSTR;
+			bstrVar.bstrVal = _com_util::ConvertStringToBSTR("Hello");
+			strVal = Converter::ConvertToString(bstrVar);
+			Assert::AreEqual(strVal.c_str(), "Hello");
+
+			_FILETIME ft;
+			SYSTEMTIME dt;
+			GetSystemTime(&dt);			
+			SystemTimeToFileTime(&dt, &ft);
+			string strDT = Converter::FileTimeToString(ft);
+			regex reg("^\\d\\d\/\\d\\d\/\\d\\d\\d\\d \\d\\d:\\d\\d:\\d\\d$");
+			Assert::IsTrue(regex_match(strDT, reg));
+
+			USHORT usVal = 0x00;
+			Assert::AreEqual(Converter::GetQuality(usVal), L"Bad");
+			usVal = 0xC0;
+			Assert::AreEqual(Converter::GetQuality(usVal), L"Good");
+			usVal = 0x100;
+			Assert::AreEqual(Converter::GetQuality(usVal), L"Unknown");
 		}
 	};
 }
